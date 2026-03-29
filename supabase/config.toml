@@ -1,0 +1,19 @@
+project_id = "hpzatoqdqlmrrdpkzwub"
+
+[functions.manage-users]
+verify_jwt = false
+
+[functions.seed-admin]
+verify_jwt = false
+
+[functions.generate-assignment]
+verify_jwt = false
+
+[functions.reset-password]
+verify_jwt = false
+
+[functions.get-security-question]
+verify_jwt = false
+
+[functions.ai-tutor]
+verify_jwt = false

@@ -29,6 +29,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Convert username to email format for Supabase auth
 const usernameToEmail = (username: string) => `${username}@codechamps.local`;
 const emailToUsername = (email: string) => email.replace("@codechamps.local", "");
 
@@ -53,9 +54,11 @@ const clearCachedUser = () => localStorage.removeItem(CACHE_KEY);
 const buildAuthUser = async (supaUser: User): Promise<AuthUser | null> => {
   const username = emailToUsername(supaUser.email || "");
 
+  // Return cached instantly if available
   const cached = getCachedUser(supaUser.id);
   if (cached) return cached;
 
+  // Single RPC call to get role + profile info
   const { data: profile } = await supabase.rpc("get_user_profile", { _user_id: supaUser.id });
 
   const p = profile as any || {};
@@ -70,7 +73,6 @@ const buildAuthUser = async (supaUser: User): Promise<AuthUser | null> => {
   cacheUser(authUser);
   return authUser;
 };
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
