@@ -1,0 +1,1 @@
+CREATE POLICY "student_view_school_students" ON public.students FOR SELECT TO authenticated USING (school_id = get_student_school_id(auth.uid()));

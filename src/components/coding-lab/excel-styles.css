@@ -1,0 +1,133 @@
+/* Override jspreadsheet styles for dark theme */
+.excel-container .jexcel_container {
+  background: #1a1f2e !important;
+  height: 100% !important;
+}
+
+.excel-container .jexcel {
+  background: #1a1f2e !important;
+  color: #e0e0e0 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.excel-container .jexcel td {
+  background: #1e2336 !important;
+  color: #e0e0e0 !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  font-size: 12px;
+}
+
+.excel-container .jexcel td.jexcel_row {
+  background: #252b3d !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.excel-container .jexcel thead td {
+  background: #252b3d !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  font-weight: 500;
+}
+
+.excel-container .jexcel td.highlight {
+  background: rgba(34, 197, 94, 0.15) !important;
+}
+
+.excel-container .jexcel td.jexcel_selected,
+.excel-container .jexcel td.highlight-selected {
+  background: rgba(34, 197, 94, 0.2) !important;
+  border: 2px solid hsl(140, 70%, 45%) !important;
+}
+
+.excel-container .jexcel .jexcel_corner {
+  background: hsl(140, 70%, 45%) !important;
+  border-color: hsl(140, 70%, 45%) !important;
+}
+
+/* Toolbar */
+.excel-container .jexcel_toolbar {
+  background: #1e2538 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 4px 8px !important;
+}
+
+.excel-container .jexcel_toolbar i {
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 18px !important;
+}
+
+.excel-container .jexcel_toolbar i:hover {
+  color: white !important;
+}
+
+.excel-container .jexcel_toolbar select {
+  background: #151a2a !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+  font-size: 11px !important;
+  padding: 2px 4px !important;
+}
+
+.excel-container .jexcel_toolbar .jexcel_toolbar_separator {
+  border-left-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Scrollbar */
+.excel-container .jexcel_container::-webkit-scrollbar,
+.excel-container .jexcel_content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.excel-container .jexcel_container::-webkit-scrollbar-track,
+.excel-container .jexcel_content::-webkit-scrollbar-track {
+  background: #1a1f2e;
+}
+
+.excel-container .jexcel_container::-webkit-scrollbar-thumb,
+.excel-container .jexcel_content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+/* Context menu */
+.jexcel_contextmenu {
+  background: #252b3d !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+}
+
+.jexcel_contextmenu a {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 12px !important;
+}
+
+.jexcel_contextmenu a:hover {
+  background: rgba(34, 197, 94, 0.15) !important;
+}
+
+.jexcel_contextmenu hr {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Formula bar / search */
+.excel-container .jexcel_search {
+  background: #151a2a !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Input editing */
+.excel-container .jexcel .editor,
+.excel-container .jexcel td .editor {
+  background: #1e2336 !important;
+  color: white !important;
+}
+
+/* Pagination */
+.excel-container .jexcel_pagination {
+  background: #1e2538 !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+}

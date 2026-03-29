@@ -1,0 +1,170 @@
+/* Light Excel theme for jspreadsheet-ce */
+
+.excel-light-container .jexcel_container {
+  background: #ffffff !important;
+  height: 100% !important;
+}
+
+.excel-light-container .jexcel {
+  background: #ffffff !important;
+  color: #1a1a1a !important;
+  border-color: #e0e0e0 !important;
+  font-family: "Calibri", "Segoe UI", Arial, sans-serif !important;
+}
+
+.excel-light-container .jexcel td {
+  background: #ffffff !important;
+  color: #1a1a1a !important;
+  border: 1px solid #e0e0e0 !important;
+  font-size: 12px;
+  padding: 2px 4px !important;
+}
+
+/* Row numbers */
+.excel-light-container .jexcel td.jexcel_row {
+  background: #f3f3f3 !important;
+  color: #555 !important;
+  font-weight: 500;
+  border-right: 2px solid #d4d4d4 !important;
+}
+
+/* Column headers */
+.excel-light-container .jexcel thead td {
+  background: #f3f3f3 !important;
+  color: #333 !important;
+  border: 1px solid #d4d4d4 !important;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+/* Selected column/row headers */
+.excel-light-container .jexcel thead td.selected {
+  background: #dce6f1 !important;
+  color: #217346 !important;
+}
+
+/* Cell highlight (selection range) */
+.excel-light-container .jexcel td.highlight {
+  background: #d6e4f0 !important;
+}
+
+/* Active selected cell */
+.excel-light-container .jexcel td.jexcel_selected,
+.excel-light-container .jexcel td.highlight-selected {
+  background: #d6e4f0 !important;
+  border: 2px solid #217346 !important;
+}
+
+/* Fill handle corner */
+.excel-light-container .jexcel .jexcel_corner {
+  background: #217346 !important;
+  border-color: #217346 !important;
+}
+
+/* Toolbar - Excel ribbon style */
+.excel-light-container .jexcel_toolbar {
+  background: #f8f9fa !important;
+  border-bottom: 1px solid #d4d4d4 !important;
+  padding: 6px 12px !important;
+  min-height: 40px;
+}
+
+.excel-light-container .jexcel_toolbar i {
+  color: #444 !important;
+  font-size: 18px !important;
+  padding: 4px !important;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.excel-light-container .jexcel_toolbar i:hover {
+  color: #217346 !important;
+  background: #e8f5e9 !important;
+}
+
+.excel-light-container .jexcel_toolbar select {
+  background: #fff !important;
+  color: #333 !important;
+  border: 1px solid #c4c4c4 !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  padding: 3px 6px !important;
+  height: 28px;
+}
+
+.excel-light-container .jexcel_toolbar select:hover {
+  border-color: #217346 !important;
+}
+
+.excel-light-container .jexcel_toolbar .jexcel_toolbar_separator {
+  border-left: 1px solid #d4d4d4 !important;
+  height: 24px !important;
+  margin: 0 6px !important;
+}
+
+/* Scrollbars */
+.excel-light-container ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.excel-light-container ::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.excel-light-container ::-webkit-scrollbar-thumb {
+  background: #c4c4c4;
+  border-radius: 6px;
+  border: 2px solid #f1f1f1;
+}
+
+.excel-light-container ::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* Context menu */
+.jexcel_contextmenu {
+  background: #ffffff !important;
+  border: 1px solid #d4d4d4 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  padding: 4px 0 !important;
+}
+
+.jexcel_contextmenu a {
+  color: #333 !important;
+  font-size: 12px !important;
+  padding: 6px 16px !important;
+}
+
+.jexcel_contextmenu a:hover {
+  background: #e8f5e9 !important;
+  color: #217346 !important;
+}
+
+.jexcel_contextmenu hr {
+  border-color: #e0e0e0 !important;
+  margin: 2px 0 !important;
+}
+
+/* Formula/editor input */
+.excel-light-container .jexcel .editor,
+.excel-light-container .jexcel td .editor {
+  background: #fff !important;
+  color: #1a1a1a !important;
+  font-family: "Calibri", Arial, sans-serif !important;
+}
+
+/* Search bar */
+.excel-light-container .jexcel_search {
+  background: #fff !important;
+  color: #333 !important;
+  border: 1px solid #c4c4c4 !important;
+  border-radius: 4px !important;
+}
+
+/* Color picker adjustments */
+.jexcel_toolbar .jcolor {
+  border: 1px solid #c4c4c4 !important;
+  border-radius: 4px !important;
+}

@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
-
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -11,7 +11,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-
+  
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 };
