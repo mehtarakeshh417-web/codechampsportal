@@ -165,21 +165,21 @@ export const MsPaintEditor = () => (
   </EditorWrapper>
 );
 
-// MS Word Editor - Simulated with save
-export const MsWordEditor = () => {
-  const handleSave = () => {
-    const editor = document.querySelector('[contenteditable="true"]') as HTMLElement;
-    if (!editor) { toast.error("No content to save"); return; }
-    const content = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Document</title><style>body{font-family:Calibri,sans-serif;padding:40px;max-width:800px;margin:auto;}</style></head><body>${editor.innerHTML}</body></html>`;
-    downloadFile(content, "document.html", "text/html");
-  };
-
-  return (
-    <EditorWrapper title="MS Word Editor" onSave={handleSave}>
-      <SimulatedWordEditor />
-    </EditorWrapper>
-  );
-};
+// MS Word Editor - CryptPad anonymous pad (real word processor UI)
+export const MsWordEditor = () => (
+  <EditorWrapper title="MS Word Editor">
+    <div className="h-[650px] rounded-xl overflow-hidden border border-white/10 bg-white">
+      <iframe
+        src="https://cryptpad.fr/pad/"
+        className="w-full h-full border-0"
+        title="MS Word Editor (CryptPad)"
+        allow="clipboard-read; clipboard-write"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-downloads allow-popups-to-escape-sandbox"
+        loading="lazy"
+      />
+    </div>
+  </EditorWrapper>
+);
 
 // MS Excel Editor - JSpreadsheet with white Excel theme
 export const MsExcelEditor = () => (
@@ -188,10 +188,19 @@ export const MsExcelEditor = () => (
   </EditorWrapper>
 );
 
-// MS PowerPoint Editor - Simulated
+// MS PowerPoint Editor - CryptPad Slides (real presentation editor UI)
 export const MsPowerPointEditor = () => (
   <EditorWrapper title="MS PowerPoint Editor">
-    <SimulatedPowerPointEditor />
+    <div className="h-[650px] rounded-xl overflow-hidden border border-white/10 bg-white">
+      <iframe
+        src="https://cryptpad.fr/slide/"
+        className="w-full h-full border-0"
+        title="MS PowerPoint Editor (CryptPad)"
+        allow="clipboard-read; clipboard-write"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-downloads allow-popups-to-escape-sandbox"
+        loading="lazy"
+      />
+    </div>
   </EditorWrapper>
 );
 
@@ -266,9 +275,9 @@ export const EDITOR_URLS: Record<string, { url: string; label: string }> = {
   scratch: { url: "https://studio.penguinmod.com/editor.html", label: "Block Coding Editor" },
   scratchjr: { url: "https://codejr.org/scratchjr/index.html", label: "Scratch Jr" },
   mspaint: { url: "https://paint.js.org/", label: "MS Paint" },
-  msword: { url: "about:blank", label: "MS Word Editor" },
+  msword: { url: "https://cryptpad.fr/pad/", label: "MS Word Editor" },
   msexcel: { url: "https://ethercalc.net/_new", label: "MS Excel Editor" },
-  mspowerpoint: { url: "about:blank", label: "MS PowerPoint Editor" },
+  mspowerpoint: { url: "https://cryptpad.fr/slide/", label: "MS PowerPoint Editor" },
   gimp: { url: "about:blank", label: "GIMP Editor" },
   krita: { url: "about:blank", label: "Krita Editor" },
   canva: { url: "https://studio.polotno.com/", label: "Design Editor" },
