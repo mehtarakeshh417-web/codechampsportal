@@ -179,19 +179,10 @@ export const MsExcelEditor = () => (
   </EditorWrapper>
 );
 
-// MS PowerPoint Editor - CryptPad Slides (real presentation editor UI)
+// MS PowerPoint Editor - Simulated with real PowerPoint-like UI
 export const MsPowerPointEditor = () => (
   <EditorWrapper title="MS PowerPoint Editor">
-    <div className="h-[650px] rounded-xl overflow-hidden border border-white/10 bg-white">
-      <iframe
-        src="https://cryptpad.fr/slide/"
-        className="w-full h-full border-0"
-        title="MS PowerPoint Editor (CryptPad)"
-        allow="clipboard-read; clipboard-write"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-downloads allow-popups-to-escape-sandbox"
-        loading="lazy"
-      />
-    </div>
+    <SimulatedPowerPointEditor />
   </EditorWrapper>
 );
 
