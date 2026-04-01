@@ -165,19 +165,10 @@ export const MsPaintEditor = () => (
   </EditorWrapper>
 );
 
-// MS Word Editor - CryptPad anonymous pad (real word processor UI)
+// MS Word Editor - Simulated with real Office-like ribbon UI
 export const MsWordEditor = () => (
   <EditorWrapper title="MS Word Editor">
-    <div className="h-[650px] rounded-xl overflow-hidden border border-white/10 bg-white">
-      <iframe
-        src="https://cryptpad.fr/pad/"
-        className="w-full h-full border-0"
-        title="MS Word Editor (CryptPad)"
-        allow="clipboard-read; clipboard-write"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-downloads allow-popups-to-escape-sandbox"
-        loading="lazy"
-      />
-    </div>
+    <SimulatedWordEditor />
   </EditorWrapper>
 );
 
