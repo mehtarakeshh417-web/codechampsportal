@@ -251,21 +251,169 @@ export const ScratchJrEditor = () => (
   </EditorWrapper>
 );
 
-// Design Editor (Polotno Studio - free Canva alternative, no login required)
-export const CanvaEditor = () => (
-  <EditorWrapper title="Design Editor">
-    <div className="h-[650px] rounded-xl overflow-hidden border border-white/10 bg-white">
-      <iframe
-        src="https://studio.polotno.com/"
-        className="w-full h-full border-0"
-        title="Design Editor (Polotno Studio)"
-        allow="clipboard-read; clipboard-write"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-downloads allow-popups-to-escape-sandbox"
-        loading="lazy"
-      />
-    </div>
-  </EditorWrapper>
-);
+// Canva Design Editor — Real Canva integration via Connect API
+export const CanvaEditor = () => {
+  const [isConnected, setIsConnected] = useState(false);
+  const [designs, setDesigns] = useState<Array<{ id: string; title: string; thumbnail?: { url: string }; urls?: { edit_url: string } }>>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Dynamically import to avoid circular deps
+    import("@/lib/canvaAuth").then(({ getStoredTokens }) => {
+      setIsConnected(!!getStoredTokens());
+    });
+  }, []);
+
+  const handleConnect = async () => {
+    const { startCanvaOAuth } = await import("@/lib/canvaAuth");
+    // Store current path so callback returns here
+    sessionStorage.setItem("canva_return_path", window.location.pathname + "?editor=canva");
+    startCanvaOAuth();
+  };
+
+  const handleDisconnect = async () => {
+    const { clearTokens } = await import("@/lib/canvaAuth");
+    clearTokens();
+    setIsConnected(false);
+    setDesigns([]);
+    toast.success("Disconnected from Canva");
+  };
+
+  const loadDesigns = async () => {
+    setLoading(true);
+    try {
+      const { canvaApiCall } = await import("@/lib/canvaAuth");
+      const data = await canvaApiCall("list-designs", "GET") as { items?: Array<{ id: string; title: string; thumbnail?: { url: string }; urls?: { edit_url: string } }> };
+      setDesigns(data.items || []);
+    } catch (err) {
+      toast.error("Failed to load designs");
+    }
+    setLoading(false);
+  };
+
+  const createDesign = async (type: string) => {
+    setLoading(true);
+    try {
+      const { canvaApiCall } = await import("@/lib/canvaAuth");
+      const data = await canvaApiCall("create-design", "POST", {
+        title: `New ${type} Design`,
+        design_type: type,
+      }) as { design?: { urls?: { edit_url: string } } };
+      if (data.design?.urls?.edit_url) {
+        window.open(data.design.urls.edit_url, "_blank");
+        toast.success("Design created! Opening in Canva...");
+        // Refresh list after a moment
+        setTimeout(loadDesigns, 3000);
+      }
+    } catch (err) {
+      toast.error("Failed to create design");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (isConnected) loadDesigns();
+  }, [isConnected]);
+
+  if (!isConnected) {
+    return (
+      <EditorWrapper title="Design with Canva">
+        <div className="h-[650px] rounded-xl overflow-hidden border border-white/10 bg-[hsl(220,30%,8%)] flex flex-col items-center justify-center gap-6 p-8">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#7B2FF7] via-[#00C4CC] to-[#FF6F61] flex items-center justify-center shadow-lg">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+          </div>
+          <div className="text-center space-y-2">
+            <h3 className="text-xl font-display font-bold text-white">Design with Canva</h3>
+            <p className="text-white/50 font-body text-sm max-w-md">
+              Connect your Canva account to create professional designs — posters, banners, presentations and more — right from your Coding Lab.
+            </p>
+          </div>
+          <Button
+            onClick={handleConnect}
+            size="lg"
+            className="bg-gradient-to-r from-[#7B2FF7] to-[#00C4CC] hover:opacity-90 text-white font-bold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+            Connect to Canva
+          </Button>
+          <p className="text-white/30 text-xs font-body">You'll be redirected to Canva to authorize access</p>
+        </div>
+      </EditorWrapper>
+    );
+  }
+
+  return (
+    <EditorWrapper title="Design with Canva">
+      <div className="h-[650px] rounded-xl overflow-hidden border border-white/10 bg-[hsl(220,30%,8%)] flex flex-col">
+        {/* Toolbar */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5">
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => createDesign("doc")} disabled={loading}
+              className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 text-xs">
+              + Document
+            </Button>
+            <Button size="sm" onClick={() => createDesign("presentation")} disabled={loading}
+              className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 text-xs">
+              + Presentation
+            </Button>
+            <Button size="sm" onClick={() => createDesign("poster")} disabled={loading}
+              className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 text-xs">
+              + Poster
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" onClick={loadDesigns} disabled={loading}
+              className="text-white/60 hover:text-white text-xs">
+              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Refresh
+            </Button>
+            <Button size="sm" variant="ghost" onClick={handleDisconnect}
+              className="text-red-400 hover:text-red-300 text-xs">
+              Disconnect
+            </Button>
+          </div>
+        </div>
+
+        {/* Designs grid */}
+        <div className="flex-1 overflow-auto p-4">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : designs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center gap-3">
+              <p className="text-white/40 font-body">No designs yet. Create your first one above!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {designs.map((design) => (
+                <button
+                  key={design.id}
+                  onClick={() => {
+                    if (design.urls?.edit_url) {
+                      window.open(design.urls.edit_url, "_blank");
+                    }
+                  }}
+                  className="group bg-white/5 border border-white/10 rounded-lg overflow-hidden hover:border-primary/50 transition-all text-left"
+                >
+                  <div className="aspect-video bg-white/5 flex items-center justify-center overflow-hidden">
+                    {design.thumbnail?.url ? (
+                      <img src={design.thumbnail.url} alt={design.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-white/20 text-3xl">🎨</span>
+                    )}
+                  </div>
+                  <div className="p-2">
+                    <p className="text-white/80 text-xs font-body truncate">{design.title}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </EditorWrapper>
+  );
+};
 
 // Editor URLs for popup opening
 export const EDITOR_URLS: Record<string, { url: string; label: string }> = {
