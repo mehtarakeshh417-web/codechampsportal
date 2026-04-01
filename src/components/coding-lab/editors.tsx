@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import SimulatedWordEditor from "./SimulatedWordEditor";
 import SimulatedExcelEditor from "./SimulatedExcelEditor";
-import JSpreadsheetExcel from "./JSpreadsheetExcel";
 import SimulatedPowerPointEditor from "./SimulatedPowerPointEditor";
 import SimulatedGimpEditor from "./SimulatedGimpEditor";
 import SimulatedKritaEditor from "./SimulatedKritaEditor";
