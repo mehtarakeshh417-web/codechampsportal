@@ -1,26 +1,45 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { exchangeCodeForTokens } from "@/lib/canvaAuth";
 import { toast } from "sonner";
 
 const CanvaCallback = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "error">("loading");
+  const [errorDetail, setErrorDetail] = useState("");
 
   useEffect(() => {
-    const code = searchParams.get("code");
-    const state = searchParams.get("state");
+    // Check both search params and hash fragment (Canva may use either)
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+
+    const code = searchParams.get("code") || hashParams.get("code");
+    const state = searchParams.get("state") || hashParams.get("state");
+    const error = searchParams.get("error") || hashParams.get("error");
+    const errorDesc = searchParams.get("error_description") || hashParams.get("error_description");
     const storedState = sessionStorage.getItem("canva_oauth_state");
 
-    if (!code) {
+    if (error) {
+      const msg = errorDesc || error;
+      console.error("Canva OAuth error:", msg);
       setStatus("error");
+      setErrorDetail(msg);
+      toast.error(`Canva: ${msg}`);
+      return;
+    }
+
+    if (!code) {
+      const msg = `No authorization code received. URL: ${window.location.href}`;
+      console.error(msg);
+      setStatus("error");
+      setErrorDetail("No authorization code received from Canva.");
       toast.error("Canva authorization failed — no code received.");
       return;
     }
 
     if (state && storedState && state !== storedState) {
       setStatus("error");
+      setErrorDetail("OAuth state mismatch. Please try again.");
       toast.error("OAuth state mismatch. Please try again.");
       return;
     }
@@ -28,7 +47,6 @@ const CanvaCallback = () => {
     exchangeCodeForTokens(code)
       .then(() => {
         toast.success("Connected to Canva successfully!");
-        // Navigate back to coding lab with canva tab
         const returnPath = sessionStorage.getItem("canva_return_path") || "/student/coding-lab?editor=canva";
         sessionStorage.removeItem("canva_return_path");
         sessionStorage.removeItem("canva_oauth_state");
@@ -37,13 +55,14 @@ const CanvaCallback = () => {
       .catch((err) => {
         console.error("Canva token exchange error:", err);
         setStatus("error");
+        setErrorDetail(err?.message || "Token exchange failed");
         toast.error("Failed to connect to Canva. Please try again.");
       });
-  }, [searchParams, navigate]);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--background))]">
-      <div className="text-center space-y-4">
+      <div className="text-center space-y-4 max-w-md px-4">
         {status === "loading" ? (
           <>
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
@@ -52,6 +71,9 @@ const CanvaCallback = () => {
         ) : (
           <>
             <p className="text-red-400 font-body">Failed to connect to Canva.</p>
+            {errorDetail && (
+              <p className="text-white/40 font-body text-sm">{errorDetail}</p>
+            )}
             <button
               onClick={() => navigate("/student/coding-lab?editor=canva")}
               className="text-primary underline font-body"

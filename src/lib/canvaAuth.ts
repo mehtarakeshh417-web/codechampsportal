@@ -70,7 +70,7 @@ export async function startCanvaOAuth() {
 
   const params = new URLSearchParams({
     code_challenge: codeChallenge,
-    code_challenge_method: "s256",
+    code_challenge_method: "S256",
     scope: SCOPES,
     response_type: "code",
     client_id: CANVA_CLIENT_ID,
