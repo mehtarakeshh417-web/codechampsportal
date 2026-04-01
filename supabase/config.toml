@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.ai-tutor]
 verify_jwt = false
+
+[functions.canva-oauth]
+verify_jwt = false
