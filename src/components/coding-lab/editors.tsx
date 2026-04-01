@@ -172,10 +172,10 @@ export const MsWordEditor = () => (
   </EditorWrapper>
 );
 
-// MS Excel Editor - JSpreadsheet with white Excel theme
+// MS Excel Editor - Simulated with real Excel-like ribbon UI
 export const MsExcelEditor = () => (
   <EditorWrapper title="MS Excel Editor">
-    <JSpreadsheetExcel />
+    <SimulatedExcelEditor />
   </EditorWrapper>
 );
 
