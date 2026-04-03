@@ -5,18 +5,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSearchParams } from "react-router-dom";
 import {
-  HtmlEditor,
-  PythonEditor,
-  JavaEditor,
-  MsPaintEditor,
-  MsWordEditor,
-  MsExcelEditor,
-  MsPowerPointEditor,
-  GimpEditor,
-  KritaEditor,
-  ScratchEditor,
-  ScratchJrEditor,
-  CanvaEditor,
+  HtmlEditor, PythonEditor, JavaEditor, MsPaintEditor, MsWordEditor,
+  MsExcelEditor, MsPowerPointEditor, GimpEditor, KritaEditor, ScratchEditor, ScratchJrEditor, CanvaEditor,
+  WordProEditor, ExcelProEditor, PowerPointProEditor,
 } from "@/components/coding-lab/editors";
 
 const getAvailableEditors = (className?: string): string[] => {
