@@ -16,11 +16,11 @@ const getAvailableEditors = (className?: string): string[] => {
   const classNum = numMatch ? parseInt(numMatch[1]) : 1;
 
   if (classNum <= 2) return ["scratchjr", "mspaint", "krita", "canva"];
-  if (classNum <= 4) return ["scratch", "scratchjr", "mspaint", "krita", "msword", "gimp", "canva"];
-  if (classNum <= 5) return ["scratch", "scratchjr", "python", "html", "java", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva"];
-  if (classNum === 6) return ["html", "python", "java", "scratch", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva"];
-  if (classNum === 7) return ["html", "python", "java", "scratch", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva"];
-  return ["html", "python", "java", "scratch", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva"];
+  if (classNum <= 4) return ["scratch", "scratchjr", "mspaint", "krita", "msword", "gimp", "canva", "word2"];
+  if (classNum <= 5) return ["scratch", "scratchjr", "python", "html", "java", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva", "word2", "excel2", "ppt2"];
+  if (classNum === 6) return ["html", "python", "java", "scratch", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva", "word2", "excel2", "ppt2"];
+  if (classNum === 7) return ["html", "python", "java", "scratch", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva", "word2", "excel2", "ppt2"];
+  return ["html", "python", "java", "scratch", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva", "word2", "excel2", "ppt2"];
 };
 
 const editorMeta: Record<string, { label: string; icon: React.ElementType; component: React.FC }> = {
