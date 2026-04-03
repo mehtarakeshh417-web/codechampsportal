@@ -2,11 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { Play, RotateCcw, Maximize2, Minimize2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import SimulatedWordEditor from "./SimulatedWordEditor";
-import SimulatedExcelEditor from "./SimulatedExcelEditor";
-import SimulatedPowerPointEditor from "./SimulatedPowerPointEditor";
 import SimulatedGimpEditor from "./SimulatedGimpEditor";
 import SimulatedKritaEditor from "./SimulatedKritaEditor";
+import OfficeSuiteLab from "./OfficeSuiteLab";
 
 // Helper to download a blob
 const downloadFile = (content: string, filename: string, mimeType: string) => {
@@ -164,24 +162,24 @@ export const MsPaintEditor = () => (
   </EditorWrapper>
 );
 
-// MS Word Editor - Simulated with real Office-like ribbon UI
+// MS Word Editor - Microsoft Office Online
 export const MsWordEditor = () => (
   <EditorWrapper title="MS Word Editor">
-    <SimulatedWordEditor />
+    <OfficeSuiteLab />
   </EditorWrapper>
 );
 
-// MS Excel Editor - Simulated with real Excel-like ribbon UI
+// MS Excel Editor - Microsoft Office Online
 export const MsExcelEditor = () => (
   <EditorWrapper title="MS Excel Editor">
-    <SimulatedExcelEditor />
+    <OfficeSuiteLab />
   </EditorWrapper>
 );
 
-// MS PowerPoint Editor - Simulated with real PowerPoint-like UI
+// MS PowerPoint Editor - Microsoft Office Online
 export const MsPowerPointEditor = () => (
   <EditorWrapper title="MS PowerPoint Editor">
-    <SimulatedPowerPointEditor />
+    <OfficeSuiteLab />
   </EditorWrapper>
 );
 
@@ -264,9 +262,7 @@ export const EDITOR_URLS: Record<string, { url: string; label: string }> = {
   canva: { url: "https://www.photopea.com/", label: "Design Editor" },
 };
 
-// Re-export simulated editors
-export { default as SimulatedWordEditor } from "./SimulatedWordEditor";
-export { default as SimulatedExcelEditor } from "./SimulatedExcelEditor";
-export { default as SimulatedPowerPointEditor } from "./SimulatedPowerPointEditor";
+// Re-export editors
+export { default as OfficeSuiteLab } from "./OfficeSuiteLab";
 export { default as SimulatedGimpEditor } from "./SimulatedGimpEditor";
 export { default as SimulatedKritaEditor } from "./SimulatedKritaEditor";
