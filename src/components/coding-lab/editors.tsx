@@ -268,3 +268,8 @@ export const EDITOR_URLS: Record<string, { url: string; label: string }> = {
 export { default as OfficeSuiteLab } from "./OfficeSuiteLab";
 export { default as SimulatedGimpEditor } from "./SimulatedGimpEditor";
 export { default as SimulatedKritaEditor } from "./SimulatedKritaEditor";
+
+// Pro editors (no-login, no-iframe)
+export { default as WordProEditor } from "./WordPro";
+export { default as ExcelProEditor } from "./ExcelPro";
+export { default as PowerPointProEditor } from "./PowerPointPro";
