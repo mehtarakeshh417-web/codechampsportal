@@ -162,24 +162,24 @@ export const MsPaintEditor = () => (
   </EditorWrapper>
 );
 
-// MS Word Editor - Simulated with real Office-like ribbon UI
+// MS Word Editor - Microsoft Office Online
 export const MsWordEditor = () => (
   <EditorWrapper title="MS Word Editor">
-    <SimulatedWordEditor />
+    <OfficeSuiteLab />
   </EditorWrapper>
 );
 
-// MS Excel Editor - Simulated with real Excel-like ribbon UI
+// MS Excel Editor - Microsoft Office Online
 export const MsExcelEditor = () => (
   <EditorWrapper title="MS Excel Editor">
-    <SimulatedExcelEditor />
+    <OfficeSuiteLab />
   </EditorWrapper>
 );
 
-// MS PowerPoint Editor - Simulated with real PowerPoint-like UI
+// MS PowerPoint Editor - Microsoft Office Online
 export const MsPowerPointEditor = () => (
   <EditorWrapper title="MS PowerPoint Editor">
-    <SimulatedPowerPointEditor />
+    <OfficeSuiteLab />
   </EditorWrapper>
 );
 
