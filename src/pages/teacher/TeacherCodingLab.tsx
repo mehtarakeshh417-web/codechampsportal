@@ -5,9 +5,10 @@ import { useSearchParams } from "react-router-dom";
 import {
   HtmlEditor, PythonEditor, JavaEditor, MsPaintEditor, MsWordEditor,
   MsExcelEditor, MsPowerPointEditor, GimpEditor, KritaEditor, ScratchEditor, ScratchJrEditor, CanvaEditor,
+  WordProEditor, ExcelProEditor, PowerPointProEditor,
 } from "@/components/coding-lab/editors";
 
-const ALL_EDITORS = ["html", "python", "java", "scratch", "scratchjr", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva"];
+const ALL_EDITORS = ["html", "python", "java", "scratch", "scratchjr", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva", "word2", "excel2", "ppt2"];
 
 const editorMeta: Record<string, { label: string; icon: React.ElementType; component: React.FC }> = {
   html:          { label: "HTML/CSS/JS",    icon: Code,         component: HtmlEditor },
@@ -22,6 +23,9 @@ const editorMeta: Record<string, { label: string; icon: React.ElementType; compo
   gimp:          { label: "GIMP",           icon: ImageIcon,    component: GimpEditor },
   krita:         { label: "Krita",          icon: PenTool,      component: KritaEditor },
   canva:         { label: "Design",         icon: LayoutDashboard, component: CanvaEditor },
+  word2:         { label: "Word 2",         icon: FileText,     component: WordProEditor },
+  excel2:        { label: "Excel 2",        icon: Table2,       component: ExcelProEditor },
+  ppt2:          { label: "PPT 2",          icon: Presentation, component: PowerPointProEditor },
 };
 
 const TeacherCodingLab = () => {
