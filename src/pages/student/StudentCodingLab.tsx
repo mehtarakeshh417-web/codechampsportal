@@ -36,6 +36,9 @@ const editorMeta: Record<string, { label: string; icon: React.ElementType; compo
   gimp:          { label: "GIMP",           icon: ImageIcon,    component: GimpEditor },
   krita:         { label: "Krita",          icon: PenTool,      component: KritaEditor },
   canva:         { label: "Design",         icon: LayoutDashboard, component: CanvaEditor },
+  word2:         { label: "Word 2",         icon: FileText,     component: WordProEditor },
+  excel2:        { label: "Excel 2",        icon: Table2,       component: ExcelProEditor },
+  ppt2:          { label: "PPT 2",          icon: Presentation, component: PowerPointProEditor },
 };
 
 const StudentCodingLab = () => {
