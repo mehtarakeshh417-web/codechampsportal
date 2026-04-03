@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import SimulatedGimpEditor from "./SimulatedGimpEditor";
 import SimulatedKritaEditor from "./SimulatedKritaEditor";
-import OfficeSuiteLab from "./OfficeSuiteLab";
+import SimulatedWordEditor from "./SimulatedWordEditor";
+import SimulatedExcelEditor from "./SimulatedExcelEditor";
+import SimulatedPowerPointEditor from "./SimulatedPowerPointEditor";
 
 // Helper to download a blob
 const downloadFile = (content: string, filename: string, mimeType: string) => {
@@ -162,24 +164,24 @@ export const MsPaintEditor = () => (
   </EditorWrapper>
 );
 
-// MS Word Editor - Microsoft Office Online
+// MS Word Editor - no-login interactive editor
 export const MsWordEditor = () => (
   <EditorWrapper title="MS Word Editor">
-    <OfficeSuiteLab />
+    <SimulatedWordEditor />
   </EditorWrapper>
 );
 
-// MS Excel Editor - Microsoft Office Online
+// MS Excel Editor - no-login interactive editor
 export const MsExcelEditor = () => (
   <EditorWrapper title="MS Excel Editor">
-    <OfficeSuiteLab />
+    <SimulatedExcelEditor />
   </EditorWrapper>
 );
 
-// MS PowerPoint Editor - Microsoft Office Online
+// MS PowerPoint Editor - no-login interactive editor
 export const MsPowerPointEditor = () => (
   <EditorWrapper title="MS PowerPoint Editor">
-    <OfficeSuiteLab />
+    <SimulatedPowerPointEditor />
   </EditorWrapper>
 );
 
