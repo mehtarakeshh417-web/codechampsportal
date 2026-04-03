@@ -9,7 +9,7 @@ const OFFICE_TABS = [
     icon: FileText,
     color: "bg-blue-600",
     activeColor: "bg-blue-500",
-    src: "https://docs.google.com/document/d/156t_m6J6M1X-C-l_n_Fm5y7_O0Z-8_8_Rz_Yq5k_K_Y/edit?rm=minimal",
+    src: "https://docs.google.com/document/u/0/create?usp=sharing",
   },
   {
     key: "sheets",
@@ -17,7 +17,7 @@ const OFFICE_TABS = [
     icon: Table2,
     color: "bg-green-700",
     activeColor: "bg-green-600",
-    src: "https://docs.google.com/spreadsheets/d/1_9nd9_7C6fB0X5E2S-p9zM_vK1-5F0rZ0V_4aFv_k/edit?rm=minimal",
+    src: "https://docs.google.com/spreadsheets/u/0/create?usp=sharing",
   },
   {
     key: "slides",
@@ -25,7 +25,7 @@ const OFFICE_TABS = [
     icon: Presentation,
     color: "bg-orange-700",
     activeColor: "bg-orange-600",
-    src: "https://docs.google.com/presentation/d/1Z_u8G-p7p_6e5p7rQ7rQ7rQ7rQ7rQ7rQ7rQ7rQ7rQ/edit?rm=minimal",
+    src: "https://docs.google.com/presentation/u/0/create?usp=sharing",
   },
 ] as const;
 
