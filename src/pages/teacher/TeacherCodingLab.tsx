@@ -5,9 +5,10 @@ import { useSearchParams } from "react-router-dom";
 import {
   HtmlEditor, PythonEditor, JavaEditor, MsPaintEditor, MsWordEditor,
   MsExcelEditor, MsPowerPointEditor, GimpEditor, KritaEditor, ScratchEditor, ScratchJrEditor, CanvaEditor,
+  WordProEditor, ExcelProEditor, PowerPointProEditor,
 } from "@/components/coding-lab/editors";
 
-const ALL_EDITORS = ["html", "python", "java", "scratch", "scratchjr", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva"];
+const ALL_EDITORS = ["html", "python", "java", "scratch", "scratchjr", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva", "word2", "excel2", "ppt2"];
 
 const editorMeta: Record<string, { label: string; icon: React.ElementType; component: React.FC }> = {
   html:          { label: "HTML/CSS/JS",    icon: Code,         component: HtmlEditor },
