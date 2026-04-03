@@ -262,9 +262,7 @@ export const EDITOR_URLS: Record<string, { url: string; label: string }> = {
   canva: { url: "https://www.photopea.com/", label: "Design Editor" },
 };
 
-// Re-export simulated editors
-export { default as SimulatedWordEditor } from "./SimulatedWordEditor";
-export { default as SimulatedExcelEditor } from "./SimulatedExcelEditor";
-export { default as SimulatedPowerPointEditor } from "./SimulatedPowerPointEditor";
+// Re-export editors
+export { default as OfficeSuiteLab } from "./OfficeSuiteLab";
 export { default as SimulatedGimpEditor } from "./SimulatedGimpEditor";
 export { default as SimulatedKritaEditor } from "./SimulatedKritaEditor";
