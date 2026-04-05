@@ -84,7 +84,7 @@ const AdminSchools = () => {
     <div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-display text-3xl font-bold mb-1">
+          <h1 className="font-display text-3xl font-bold mb-1 text-white">
             <span className="text-gradient-brand">Schools</span> Management
           </h1>
           <p className="text-white/60 font-body">Create and manage all registered schools</p>

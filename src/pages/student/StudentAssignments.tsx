@@ -208,7 +208,7 @@ const StudentAssignments = () => {
   return (
     <div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h1 className="font-display text-3xl font-bold mb-1"><span className="text-gradient-brand">Assignments & Projects</span></h1>
+        <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">Assignments & Projects</span></h1>
         <p className="text-white/70 font-body mb-6">{assignments.length} assignment(s) · {projects.length} project(s) assigned to you</p>
       </motion.div>
 

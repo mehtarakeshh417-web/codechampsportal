@@ -156,7 +156,7 @@ const SchoolAnalytics = () => {
     <div ref={reportRef}>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-3xl font-bold mb-1"><span className="text-gradient-brand">Analytics</span></h1>
+          <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">Analytics</span></h1>
           <p className="font-body text-primary-foreground">School Performance Insights</p>
         </div>
         <div className="flex gap-3">

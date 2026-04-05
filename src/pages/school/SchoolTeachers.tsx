@@ -122,7 +122,7 @@ const SchoolTeachers = () => {
     <div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-display text-3xl font-bold mb-1"><span className="text-gradient-brand">Teachers</span></h1>
+          <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">Teachers</span></h1>
           <p className="font-body text-primary-foreground text-base font-medium">Manage your school's teaching staff</p>
         </div>
         <Button variant="hero" size="lg" onClick={() => setShowForm(true)}><Plus className="w-5 h-5 mr-2" /> Add Teacher</Button>

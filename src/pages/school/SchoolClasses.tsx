@@ -26,7 +26,7 @@ const SchoolClasses = () => {
   return (
     <div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h1 className="font-display text-3xl font-bold mb-1"><span className="text-gradient-brand">Classes</span></h1>
+        <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">Classes</span></h1>
         <p className="font-body mb-8 text-primary-foreground">Class structure and assignments</p>
       </motion.div>
       {classMap.size === 0 ?

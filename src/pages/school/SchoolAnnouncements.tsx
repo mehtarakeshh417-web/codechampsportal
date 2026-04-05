@@ -137,7 +137,7 @@ const SchoolAnnouncements = () => {
     <div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-3xl font-bold">
+          <h1 className="font-display text-3xl font-bold text-white">
             <span className="text-gradient-brand">Announcements</span> 📢
           </h1>
           <p className="text-white/60 font-body">Broadcast messages to students and teachers</p>

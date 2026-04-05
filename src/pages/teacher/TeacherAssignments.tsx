@@ -237,7 +237,7 @@ const TeacherAssignments = () => {
     <div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-display text-3xl font-bold mb-1"><span className="text-gradient-brand">Assignments</span></h1>
+          <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">Assignments</span></h1>
           <p className="text-white/70 font-body">{assignments.length} assignment(s) created</p>
         </div>
         <Button onClick={() => setShowForm(!showForm)} className="bg-gradient-to-r from-neon-blue to-neon-purple text-white">

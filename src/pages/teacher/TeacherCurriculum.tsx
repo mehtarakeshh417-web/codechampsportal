@@ -30,7 +30,7 @@ const TeacherCurriculum = () => {
   return (
     <div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h1 className="font-display text-3xl font-bold mb-1"><span className="text-gradient-brand">Curriculum Browser</span></h1>
+        <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">Curriculum Browser</span></h1>
         <p className="text-white/60 font-body mb-4">Browse curriculum content for any class</p>
       </motion.div>
 

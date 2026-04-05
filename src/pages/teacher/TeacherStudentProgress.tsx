@@ -41,7 +41,7 @@ const TeacherStudentProgress = () => {
   return (
     <div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h1 className="font-display text-3xl font-bold mb-1"><span className="text-gradient-brand">Student Progress</span></h1>
+        <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">Student Progress</span></h1>
         <p className="text-white/60 font-body mb-8">Track curriculum completion for each student</p>
       </motion.div>
 
