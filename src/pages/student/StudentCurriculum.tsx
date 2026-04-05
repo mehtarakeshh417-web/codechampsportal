@@ -68,7 +68,7 @@ const StudentCurriculum = () => {
     return (
       <div>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <h1 className="font-display text-3xl font-bold mb-1"><span className="text-gradient-brand">My Curriculum</span></h1>
+          <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">My Curriculum</span></h1>
           <p className="text-white/50 font-body mb-8">Your class-wise learning path</p>
         </motion.div>
         <div className="glass-card p-12 text-center">
@@ -85,7 +85,7 @@ const StudentCurriculum = () => {
   return (
     <div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h1 className="font-display text-3xl font-bold mb-1"><span className="text-gradient-brand">My Curriculum</span></h1>
+        <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">My Curriculum</span></h1>
         <p className="text-white/60 font-body mb-2">{curriculum.className} · {completedCount}/{totalTopics} topics completed</p>
         <div className="w-full h-3 rounded-full bg-white/10 overflow-hidden mb-8">
           <motion.div initial={{ width: 0 }} animate={{ width: `${totalTopics > 0 ? (completedCount / totalTopics) * 100 : 0}%` }} transition={{ duration: 0.8 }} className="h-full rounded-full bg-gradient-to-r from-neon-green to-neon-blue" />

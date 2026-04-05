@@ -51,7 +51,7 @@ const StudentCodingLab = () => {
   return (
     <div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h1 className="font-display text-3xl font-bold mb-1"><span className="text-gradient-brand">Coding Lab</span></h1>
+        <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">Coding Lab</span></h1>
         <p className="text-white/60 font-body mb-6">Practice coding with real compilers & editors</p>
       </motion.div>
 
