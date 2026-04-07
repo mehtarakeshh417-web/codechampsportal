@@ -758,6 +758,34 @@ export const PremiumSection = ({ section, index }: { section: ContentSection; in
             <RichText text={section.body} />
           </div>
 
+          {/* Open Editor Button — auto-detected from section content */}
+          {(() => {
+            const editorKey = getEditorForSection(section);
+            const editorInfo = editorKey ? EDITOR_URLS[editorKey] : null;
+            if (!editorInfo) return null;
+            return (
+              <div className="mx-8 mb-5">
+                <div className="flex gap-3 flex-wrap">
+                  <Button
+                    size="sm"
+                    onClick={() => { window.location.href = `/dashboard/coding-lab?editor=${editorKey}`; }}
+                    className="bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 gap-2 text-xs rounded-xl font-body font-bold shadow-lg shadow-primary/25 hover:shadow-primary/35 hover:scale-105 transition-all duration-300 h-10 px-5"
+                  >
+                    <Play className="w-3.5 h-3.5" /> Open {editorInfo.label}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => { window.open(`/dashboard/coding-lab?editor=${editorKey}&fullscreen=1`, "_blank"); }}
+                    variant="ghost"
+                    className="text-foreground/40 hover:text-primary text-xs gap-2 rounded-xl h-10"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Open in New Tab
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Illustration Grid */}
           {section.illustration && (
             <div className="mx-8">
