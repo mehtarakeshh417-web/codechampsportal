@@ -3,26 +3,41 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 import {
   Lightbulb, Maximize2, Sparkles, BookOpen, Rocket, CheckCircle2, XCircle, Play,
   AlertTriangle, Info, Cpu, Code2, Monitor, Zap, Brain, Eye, ArrowUp, ArrowDown,
-  GripVertical, Table2, List, Shield
+  GripVertical, Table2, List, Shield, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ContentSection, Exercise } from "@/lib/class5Content";
 import { EDITOR_URLS } from "@/components/coding-lab/editors";
 
-// Determine best editor for a practice exercise
-const getEditorForPractice = (question: string): string | null => {
-  const q = question.toLowerCase();
-  if (q.includes("ms word") || q.includes("word") || q.includes("document") || q.includes("letter") || q.includes("newsletter") || q.includes("invitation") || q.includes("report") || q.includes("card") || q.includes("format")) return "msword";
-  if (q.includes("paint") || q.includes("draw") || q.includes("color") || q.includes("art") || q.includes("picture")) return "mspaint";
-  if (q.includes("scratch") || q.includes("sprite") || q.includes("block") || q.includes("animation") || q.includes("game")) return "scratch";
-  if (q.includes("python")) return "python";
-  if (q.includes("html") || q.includes("web")) return "html";
-  if (q.includes("java")) return "java";
-  if (q.includes("excel") || q.includes("spreadsheet") || q.includes("cell")) return "msexcel";
-  if (q.includes("powerpoint") || q.includes("slide") || q.includes("presentation")) return "mspowerpoint";
-  if (q.includes("gimp") || q.includes("photo edit")) return "gimp";
-  if (q.includes("krita") || q.includes("digital art") || q.includes("digital paint")) return "krita";
+// Editor detection rules — order matters (more specific first)
+const editorRules: { key: string; patterns: RegExp[] }[] = [
+  { key: "mspaint", patterns: [/ms\s*paint/i, /\bpaint\b/i, /\bdraw(?:ing)?\b/i, /\bcolor(?:ing)?\b/i, /\bart\b/i, /\bpicture\b/i] },
+  { key: "msword", patterns: [/ms\s*word/i, /microsoft\s*word/i, /\bword\b(?!\s*(?:count|wrap))/i, /\bdocument\b/i, /\bletter\b/i, /\bnewsletter\b/i, /\binvitation\b/i, /\breport\b/i, /\bformat(?:ting)?\b/i, /\btext\s*editor\b/i, /\btyping\b/i, /\bparagraph\b/i, /\bfont\b/i, /page\s*layout/i, /\bmargin/i, /\bheader\b/i, /\bfooter\b/i, /\bwatermark/i, /\bcolumn/i] },
+  { key: "msexcel", patterns: [/ms\s*excel/i, /microsoft\s*excel/i, /\bexcel\b/i, /\bspreadsheet\b/i, /\bcell\b/i, /\bworksheet\b/i, /\bworkbook\b/i, /\bformula\b/i, /\brow(?:s)?\s*(?:and|&)\s*column/i] },
+  { key: "mspowerpoint", patterns: [/ms\s*powerpoint/i, /microsoft\s*powerpoint/i, /\bpowerpoint\b/i, /\bslide\b/i, /\bpresentation\b/i, /\bppt\b/i, /\btransition/i, /\banimation.*slide/i] },
+  { key: "scratch", patterns: [/\bscratch\b(?!\s*jr)/i, /\bsprite\b/i, /\bblock\s*coding\b/i, /\bblock\s*program/i] },
+  { key: "scratchjr", patterns: [/scratch\s*jr/i] },
+  { key: "python", patterns: [/\bpython\b/i] },
+  { key: "html", patterns: [/\bhtml\b/i, /\bweb\s*page\b/i, /\bwebsite\b/i, /\bcss\b/i] },
+  { key: "java", patterns: [/\bjava\b(?!script)/i] },
+  { key: "gimp", patterns: [/\bgimp\b/i, /\bphoto\s*edit/i] },
+  { key: "krita", patterns: [/\bkrita\b/i, /\bdigital\s*art\b/i, /\bdigital\s*paint/i] },
+  { key: "canva", patterns: [/\bphotopea\b/i, /\bdesign\s*editor\b/i, /\bphoto\s*design/i] },
+];
+
+// Determine best editor for a text string
+const detectEditor = (text: string): string | null => {
+  for (const rule of editorRules) {
+    if (rule.patterns.some(p => p.test(text))) return rule.key;
+  }
   return null;
+};
+
+const getEditorForPractice = (question: string): string | null => detectEditor(question);
+
+// Detect editor from section heading + body for showing "Open Editor" button
+const getEditorForSection = (section: ContentSection): string | null => {
+  return detectEditor(section.heading) || detectEditor(section.body.slice(0, 300));
 };
 
 // VIBRANT section color themes
