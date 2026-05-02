@@ -452,6 +452,7 @@ const Landing = React.forwardRef<HTMLDivElement>((_, ref) => {
             <span className="font-display text-sm font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">CodeChamps</span>
           </div>
           <p className="text-white/30 text-xs font-body">© 2026 CodeChamps. All rights reserved. Made with ❤️ in India.</p>
+          <p className="text-white/50 text-xs font-body">Developed by <span className="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Rakesh Mehta</span></p>
         </div>
       </footer>
     </div>

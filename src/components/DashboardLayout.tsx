@@ -218,6 +218,11 @@ const DashboardLayout = ({ children }: Props) => {
         <div className="p-6 md:p-8 pt-20 lg:pt-4">
           {children}
         </div>
+        <footer className="px-6 md:px-8 py-4 mt-4 border-t border-white/10 text-center">
+          <p className="text-xs font-body text-white/60">
+            Developed by <span className="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Rakesh Mehta</span>
+          </p>
+        </footer>
       </main>
 
       {/* AI Tutor Chat - Student only, hidden on assignments/projects/quizzes */}
