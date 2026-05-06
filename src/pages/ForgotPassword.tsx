@@ -104,7 +104,7 @@ const ForgotPassword = () => {
         <div className="glass-card p-10 bg-black/40 backdrop-blur-xl border border-white/10">
           {/* Header */}
           <div className="text-center mb-8">
-            <img src="/assets/logo.jpg" alt="CodeChamps logo" className="w-20 h-20 rounded-2xl object-contain mx-auto mb-4 ring-2 ring-primary/30 shadow-lg shadow-primary/20" />
+            <img src="/assets/logo.jpg" alt="Avartan logo" className="w-20 h-20 rounded-2xl object-contain mx-auto mb-4 ring-2 ring-primary/30 shadow-lg shadow-primary/20" />
             <h1 className="font-display text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Reset Password</h1>
             <p className="text-white/50 font-body text-sm mt-2">Recover access to your account</p>
           </div>

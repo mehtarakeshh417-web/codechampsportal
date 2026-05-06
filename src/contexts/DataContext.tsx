@@ -46,7 +46,7 @@ export interface StudentData {
   createdAt: string;
 }
 
-const usernameToEmail = (username: string) => `${username}@codechamps.local`;
+const usernameToEmail = (username: string) => `${username}@avartan.local`;
 const generateUsername = (prefix: string, name: string, index: number) => {
   const clean = name.toLowerCase().replace(/[^a-z]/g, "").slice(0, 6);
   return `${prefix}_${clean}${index}`;

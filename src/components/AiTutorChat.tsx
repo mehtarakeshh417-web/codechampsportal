@@ -65,7 +65,7 @@ const AiTutorChat = () => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: "Hi there! 👋 I'm your **CodeChamps AI Tutor** with real-time web search! Ask me anything about computers, coding, or technology — I'll find the latest info for you!" },
+    { role: "assistant", content: "Hi there! 👋 I'm your **Avartan AI Tutor** with real-time web search! Ask me anything about computers, coding, or technology — I'll find the latest info for you!" },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);

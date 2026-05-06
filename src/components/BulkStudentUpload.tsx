@@ -27,7 +27,7 @@ interface ParsedRow {
 
 const CLASS_OPTIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 
-const usernameToEmail = (username: string) => `${username}@codechamps.local`;
+const usernameToEmail = (username: string) => `${username}@avartan.local`;
 
 const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete }: BulkStudentUploadProps) => {
   const [show, setShow] = useState(false);
