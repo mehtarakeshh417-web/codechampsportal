@@ -99,7 +99,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
     const email = usernameToEmail(username);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return !error;
+    if (!error) return true;
+    // Fallback: legacy accounts created with @codechamps.local domain
+    const legacyEmail = `${username}@codechamps.local`;
+    const { error: legacyError } = await supabase.auth.signInWithPassword({ email: legacyEmail, password });
+    return !legacyError;
   }, []);
 
   const logout = useCallback(async () => {

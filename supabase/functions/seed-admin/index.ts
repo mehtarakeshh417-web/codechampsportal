@@ -13,16 +13,33 @@ Deno.serve(async (req) => {
 
     // Check if admin already exists
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const adminExists = existingUsers?.users?.some(u => u.email === "admin@codechamps.local");
+    const adminEmail = "admin@avartan.local";
+    const legacyAdmin = existingUsers?.users?.find(u => u.email === "admin@codechamps.local");
+    const adminExists = existingUsers?.users?.some(u => u.email === adminEmail);
+
+    // Migrate legacy admin email if present
+    if (legacyAdmin && !adminExists) {
+      await supabase.auth.admin.updateUserById(legacyAdmin.id, {
+        email: adminEmail,
+        password: "admin123",
+        email_confirm: true,
+      });
+      return new Response(JSON.stringify({ success: true, message: "Admin email migrated. Username: admin, Password: admin123" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (adminExists) {
-      return new Response(JSON.stringify({ message: "Admin already exists" }), {
+      // Reset password to known default
+      const existing = existingUsers!.users!.find(u => u.email === adminEmail)!;
+      await supabase.auth.admin.updateUserById(existing.id, { password: "admin123", email_confirm: true });
+      return new Response(JSON.stringify({ message: "Admin password reset. Username: admin, Password: admin123" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { data: newUser, error } = await supabase.auth.admin.createUser({
-      email: "admin@codechamps.local",
+      email: adminEmail,
       password: "admin123",
       email_confirm: true,
       user_metadata: { display_name: "Master Admin" },
