@@ -34,7 +34,7 @@ const howItWorks = [
 ];
 
 const testimonials = [
-  { name: "Priya Sharma", role: "Principal, DPS Noida", quote: "CodeChamps transformed how we teach computer science. Students are genuinely excited about learning now!", rating: 5 },
+  { name: "Priya Sharma", role: "Principal, DPS Noida", quote: "Avartan transformed how we teach computer science. Students are genuinely excited about learning now!", rating: 5 },
   { name: "Rajesh Kumar", role: "CS Teacher, Kendriya Vidyalaya", quote: "The AI assignment generator saves me hours every week. The gamification keeps my students engaged throughout.", rating: 5 },
   { name: "Ananya Patel", role: "Parent", quote: "My daughter went from struggling with computers to winning coding competitions. The structured curriculum is amazing.", rating: 5 },
 ];
@@ -67,9 +67,9 @@ const pricingPlans = [
 ];
 
 const faqs = [
-  { q: "What classes does CodeChamps cover?", a: "CodeChamps covers computer science curriculum from Class 1 to Class 10, aligned with CBSE and ICSE standards. Each class has age-appropriate content, from basic computer awareness to Python programming and data science." },
+  { q: "What classes does Avartan cover?", a: "Avartan covers computer science curriculum from Class 1 to Class 10, aligned with CBSE and ICSE standards. Each class has age-appropriate content, from basic computer awareness to Python programming and data science." },
   { q: "How does the gamification work?", a: "Students earn XP (experience points) by completing topics, quizzes, and assignments. They level up through ranks like 'Byte Beginner' to 'Legendary Coder', earn badges, and compete on school leaderboards." },
-  { q: "Is an internet connection required?", a: "Yes, CodeChamps is a cloud-based platform that requires an internet connection. This ensures all data is synced in real-time and students always have access to the latest content." },
+  { q: "Is an internet connection required?", a: "Yes, Avartan is a cloud-based platform that requires an internet connection. This ensures all data is synced in real-time and students always have access to the latest content." },
   { q: "Can teachers customize assignments?", a: "Absolutely! Teachers can create manual assignments or use our AI generator to auto-create MCQ, True/False, and fill-in-the-blank questions based on topic, difficulty, and class level." },
   { q: "How is student data protected?", a: "We use enterprise-grade security with complete data isolation between schools (multi-tenancy), encrypted connections, and role-based access control. Each school's data is completely private." },
   { q: "Do you offer a free trial?", a: "Yes! We offer a 30-day free trial for schools with up to 50 students. Contact us to get started — no credit card required." },
@@ -91,8 +91,8 @@ const Landing = React.forwardRef<HTMLDivElement>((_, ref) => {
         className="relative z-10 flex items-center justify-between px-6 md:px-12 py-4 backdrop-blur-sm border-b border-white/5"
       >
         <div className="flex items-center gap-3">
-          <img src={logo} alt="CodeChamps logo" className="w-10 h-10 rounded-xl object-contain" />
-          <span className="font-display text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">CodeChamps</span>
+          <img src={logo} alt="Avartan logo" className="w-10 h-10 rounded-xl object-contain" />
+          <span className="font-display text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Avartan</span>
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm font-body text-white/60">
           <a href="#features" className="hover:text-white transition-colors relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[2px] after:bg-primary after:transition-all hover:after:w-full">Features</a>
@@ -136,7 +136,7 @@ const Landing = React.forwardRef<HTMLDivElement>((_, ref) => {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
               className="font-body text-lg text-white/60 mb-8 max-w-lg leading-relaxed"
             >
-              CodeChamps transforms computer science teaching with XP systems, AI assignments, live coding sandboxes, and class-wise curriculum — from Class 1 to 10.
+              Avartan transforms computer science teaching with XP systems, AI assignments, live coding sandboxes, and class-wise curriculum — from Class 1 to 10.
             </motion.p>
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }} className="flex flex-wrap gap-4">
               <Button variant="hero" size="xl" onClick={() => navigate("/login")} className="group">
@@ -156,7 +156,7 @@ const Landing = React.forwardRef<HTMLDivElement>((_, ref) => {
           >
             <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-3xl blur-2xl opacity-50 animate-glow-pulse" />
             <div className="relative rounded-2xl overflow-hidden gradient-border">
-              <img src={heroBg} alt="CodeChamps gamified classroom" className="w-full rounded-2xl" />
+              <img src={heroBg} alt="Avartan gamified classroom" className="w-full rounded-2xl" />
               <div className="absolute inset-0 bg-gradient-to-t from-cyber-darker/70 via-transparent to-transparent" />
             </div>
           </motion.div>
@@ -448,10 +448,10 @@ const Landing = React.forwardRef<HTMLDivElement>((_, ref) => {
       <footer className="relative z-10 py-10 border-t border-white/5">
         <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src={logo} alt="CodeChamps" className="w-6 h-6 rounded-lg object-contain" />
-            <span className="font-display text-sm font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">CodeChamps</span>
+            <img src={logo} alt="Avartan" className="w-6 h-6 rounded-lg object-contain" />
+            <span className="font-display text-sm font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Avartan</span>
           </div>
-          <p className="text-white/30 text-xs font-body">© 2026 CodeChamps. All rights reserved. Made with ❤️ in India.</p>
+          <p className="text-white/30 text-xs font-body">© 2026 Avartan. All rights reserved. Made with ❤️ in India.</p>
           <p className="text-white/50 text-xs font-body">Developed by <span className="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Rakesh Mehta</span></p>
         </div>
       </footer>

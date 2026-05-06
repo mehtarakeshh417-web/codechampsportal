@@ -30,7 +30,7 @@ const SimulatedPowerPointEditor = () => {
     {
       id: "s1", bg: "#1a1a2e",
       elements: [
-        { id: uid(), type: "text", x: 80, y: 100, width: 500, height: 60, content: "Welcome to CodeChamps", fontSize: 36, bold: true, color: "#ffffff" },
+        { id: uid(), type: "text", x: 80, y: 100, width: 500, height: 60, content: "Welcome to Avartan", fontSize: 36, bold: true, color: "#ffffff" },
         { id: uid(), type: "text", x: 120, y: 200, width: 400, height: 40, content: "Click to add subtitle", fontSize: 20, color: "#cccccc" },
         { id: uid(), type: "shape", x: 250, y: 300, width: 120, height: 80, shape: "rect", color: "#3498db" },
       ],
@@ -127,7 +127,7 @@ const SimulatedPowerPointEditor = () => {
       {/* Title Bar - PowerPoint orange-red */}
       <div className="flex items-center h-8 bg-[#b7472a] px-3 gap-2">
         <Presentation className="w-4 h-4 text-white/90" />
-        <span className="text-[11px] text-white font-body">Presentation1 — CodeChamps PowerPoint</span>
+        <span className="text-[11px] text-white font-body">Presentation1 — Avartan PowerPoint</span>
         <div className="ml-auto flex gap-0.5">
           <button className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded"><Undo className="w-3.5 h-3.5" /></button>
           <button className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded"><Redo className="w-3.5 h-3.5" /></button>

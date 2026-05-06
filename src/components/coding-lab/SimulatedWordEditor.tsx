@@ -62,7 +62,7 @@ const SimulatedWordEditor = () => {
       {/* Title Bar - Word blue */}
       <div className="flex items-center h-8 bg-[#2b579a] px-3 gap-2">
         <FileText className="w-4 h-4 text-white/90" />
-        <span className="text-[11px] text-white font-body">Document1 — CodeChamps Word</span>
+        <span className="text-[11px] text-white font-body">Document1 — Avartan Word</span>
         <div className="ml-auto flex gap-0.5">
           <button className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded"><Undo className="w-3.5 h-3.5" /></button>
           <button className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded"><Redo className="w-3.5 h-3.5" /></button>
@@ -269,7 +269,7 @@ const SimulatedWordEditor = () => {
             className="p-16 outline-none text-[#333] min-h-full leading-relaxed"
             style={{ fontSize: `${fontSize}pt`, fontFamily, lineHeight: 1.6 }}
             onClick={(e) => e.stopPropagation()}>
-            <h1 style={{ fontSize: "22pt", fontWeight: "bold", marginBottom: "12px", color: "#2b579a" }}>Welcome to CodeChamps Word</h1>
+            <h1 style={{ fontSize: "22pt", fontWeight: "bold", marginBottom: "12px", color: "#2b579a" }}>Welcome to Avartan Word</h1>
             <p style={{ marginBottom: "10px", color: "#555" }}>Start typing your document here. Use the ribbon toolbar above to format your text, change fonts, insert tables, and more!</p>
             <h2 style={{ fontSize: "16pt", fontWeight: "bold", marginBottom: "8px", color: "#3873b8", marginTop: "16px" }}>Getting Started</h2>
             <p style={{ marginBottom: "8px" }}>Try these features to explore the Word editor:</p>

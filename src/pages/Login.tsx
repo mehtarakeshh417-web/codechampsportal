@@ -83,7 +83,7 @@ const Login = () => {
               <div className="absolute -inset-3 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-3xl blur-xl" />
               <img
                 src="/assets/logo.jpg"
-                alt="CodeChamps logo"
+                alt="Avartan logo"
                 className="relative w-24 h-24 rounded-2xl object-contain mx-auto mb-5 ring-2 ring-primary/30 shadow-lg shadow-primary/20"
               />
             </motion.div>
@@ -93,7 +93,7 @@ const Login = () => {
               transition={{ delay: 0.3 }}
               className="font-display text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent tracking-wide"
             >
-              CodeChamps
+              Avartan
             </motion.h1>
             <motion.p
               initial={{ opacity: 0 }}

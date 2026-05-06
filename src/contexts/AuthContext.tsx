@@ -30,8 +30,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 // Convert username to email format for Supabase auth
-const usernameToEmail = (username: string) => `${username}@codechamps.local`;
-const emailToUsername = (email: string) => email.replace("@codechamps.local", "");
+const usernameToEmail = (username: string) => `${username}@avartan.local`;
+const emailToUsername = (email: string) => email.replace("@avartan.local", "");
 
 const CACHE_KEY = "cc_auth_user";
 

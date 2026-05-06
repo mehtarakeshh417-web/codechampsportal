@@ -101,8 +101,8 @@ const DashboardLayout = ({ children }: Props) => {
     <>
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <img src="/assets/logo.jpg" alt="CodeChamps logo" className="w-10 h-10 rounded-xl object-contain" />
-          <span className="font-display text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">CodeChamps</span>
+          <img src="/assets/logo.jpg" alt="Avartan logo" className="w-10 h-10 rounded-xl object-contain" />
+          <span className="font-display text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Avartan</span>
         </div>
         <div className="flex items-center gap-2 mt-4">
           <UserCircle className="w-8 h-8 text-white/40" />
@@ -165,8 +165,8 @@ const DashboardLayout = ({ children }: Props) => {
       {/* Mobile top bar */}
       <div className="fixed top-0 left-0 right-0 z-30 lg:hidden sidebar-dark border-b border-white/10 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <img src="/assets/logo.jpg" alt="CodeChamps" className="w-8 h-8 rounded-lg object-contain" />
-          <span className="font-display text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">CodeChamps</span>
+          <img src="/assets/logo.jpg" alt="Avartan" className="w-8 h-8 rounded-lg object-contain" />
+          <span className="font-display text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Avartan</span>
         </div>
         <div className="flex items-center gap-2">
           <NotificationBell />

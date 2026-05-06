@@ -73,7 +73,7 @@ const downloadCertificate = (subjectName: string, studentName: string, className
   ctx.fillStyle = "#6c2bd9";
   ctx.font = "bold 24px system-ui";
   ctx.textAlign = "center";
-  ctx.fillText("🏆 CODECHAMPS", 600, 120);
+  ctx.fillText("🏆 AVARTAN", 600, 120);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 48px system-ui";

@@ -29,7 +29,7 @@ const ChangePassword = () => {
     if (!newPassword || newPassword.length < 4) {toast.error("New password must be at least 4 characters");return;}
     if (method === "old") {
       // Verify old password by attempting a sign-in
-      const email = `${user?.username}@codechamps.local`;
+      const email = `${user?.username}@avartan.local`;
       const { error: signInError } = await (await import("@/integrations/supabase/client")).supabase.auth.signInWithPassword({ email, password: oldPassword });
       if (signInError) { toast.error("Old password is incorrect"); return; }
       if (await changePassword(newPassword, oldPassword)) {toast.success("Password changed!");reset();} else

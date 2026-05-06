@@ -6,7 +6,7 @@
 
 const CANVA_CLIENT_ID = "OC-AZ1Kl10JipKS";
 const CANVA_AUTH_URL = "https://www.canva.com/api/oauth/authorize";
-const REDIRECT_URI = "https://codechampsportal.lovable.app/canva-callback";
+const REDIRECT_URI = "https://avartanportal.lovable.app/canva-callback";
 const SCOPES = "design:content:write design:meta:read design:content:read";
 
 // Generate PKCE code verifier + challenge

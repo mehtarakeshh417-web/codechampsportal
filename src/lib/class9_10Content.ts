@@ -1444,7 +1444,7 @@ const c10AppDev: TopicTextbook = {
       sections: [
         {
           heading: "The Mobile App Ecosystem",
-          body: "**Mobile apps** are software applications designed specifically for smartphones and tablets. With over 6 billion smartphone users worldwide, mobile apps are the primary way people interact with technology.\n\nThe two major platforms are **iOS** (Apple's iPhone/iPad) and **Android** (Samsung, Google, etc.). Each has its own app store (App Store and Google Play), design guidelines, and development tools.\n\nApps can be categorized by type: **utility apps** (calculator, weather), **social apps** (Instagram, WhatsApp), **productivity apps** (Google Docs, Notion), **gaming apps**, **educational apps** (like CodeChamps!), and **e-commerce apps** (Amazon, Flipkart).",
+          body: "**Mobile apps** are software applications designed specifically for smartphones and tablets. With over 6 billion smartphone users worldwide, mobile apps are the primary way people interact with technology.\n\nThe two major platforms are **iOS** (Apple's iPhone/iPad) and **Android** (Samsung, Google, etc.). Each has its own app store (App Store and Google Play), design guidelines, and development tools.\n\nApps can be categorized by type: **utility apps** (calculator, weather), **social apps** (Instagram, WhatsApp), **productivity apps** (Google Docs, Notion), **gaming apps**, **educational apps** (like Avartan!), and **e-commerce apps** (Amazon, Flipkart).",
           illustration: [
             { emoji: "📱", label: "iOS Apps" },
             { emoji: "🤖", label: "Android Apps" },
