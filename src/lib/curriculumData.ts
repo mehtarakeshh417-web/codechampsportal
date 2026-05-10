@@ -176,14 +176,24 @@ export const CURRICULUM: ClassCurriculum[] = [
   ]),
 ];
 
+const getClassNumber = (className: string): string | null => {
+  const match = className.toLowerCase().match(/(?:class\s*)?(10|[1-9])(?:st|nd|rd|th)?/);
+  return match?.[1] ?? null;
+};
+
 export const getCurriculumForClass = (className: string): ClassCurriculum | undefined => {
   if (!className) return undefined;
-  const normalized = className.toLowerCase().replace(/\s+/g, "");
-  return CURRICULUM.find(
-    (c) =>
+  const normalized = className.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const classNumber = getClassNumber(className);
+
+  return CURRICULUM.find((c) => {
+    const curriculumNumber = getClassNumber(c.className);
+    return (
       c.classId.toLowerCase() === normalized ||
-      c.className.toLowerCase().replace(/\s+/g, "") === normalized
-  );
+      c.className.toLowerCase().replace(/[^a-z0-9]/g, "") === normalized ||
+      (classNumber !== null && curriculumNumber === classNumber)
+    );
+  });
 };
 
 export const countTotalTopics = (curriculum: ClassCurriculum): number =>

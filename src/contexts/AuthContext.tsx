@@ -56,7 +56,7 @@ const buildAuthUser = async (supaUser: User): Promise<AuthUser | null> => {
 
   // Return cached instantly if available
   const cached = getCachedUser(supaUser.id);
-  if (cached) return cached;
+  if (cached && (cached.role !== "student" || cached.className)) return cached;
 
   // Single RPC call to get role + profile info
   const { data: profile } = await supabase.rpc("get_user_profile", { _user_id: supaUser.id });
