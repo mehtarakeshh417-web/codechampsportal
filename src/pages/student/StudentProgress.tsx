@@ -24,7 +24,8 @@ const StudentProgress = () => {
   const xp = student?.xp || 0;
   const lvl = xpLevel(xp);
 
-  const curriculum = useMemo(() => getCurriculumForClass(user?.className || ""), [user?.className]);
+  const studentClass = student?.class || user?.className || "";
+  const curriculum = useMemo(() => getCurriculumForClass(studentClass), [studentClass]);
 
   // Fetch completed topics from DB
   const [completedTopics, setCompletedTopics] = useState<string[]>([]);
