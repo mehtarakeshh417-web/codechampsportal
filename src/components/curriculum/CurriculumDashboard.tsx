@@ -14,6 +14,8 @@ import {
   getTopicsForClass,
   detectClassNumber,
 } from "@/lib/curriculum/registry";
+import { useLocalGameState } from "./enhancements/useLocalGameState";
+import StreakBadgesBar from "./enhancements/StreakBadgesBar";
 
 const CurriculumDashboard = () => {
   const { user } = useAuth();
@@ -22,6 +24,8 @@ const CurriculumDashboard = () => {
   const { classSlug } = useParams<{ classSlug?: string }>();
 
   const student = useMemo(() => students.find((s) => s.user_id === user?.id), [students, user?.id]);
+  const { state: g, touchStreak } = useLocalGameState(student?.id);
+  useEffect(() => { touchStreak(); }, [touchStreak]);
   const studentClassNumber = useMemo(
     () => detectClassNumber(student?.class || user?.className || ""),
     [student?.class, user?.className]
@@ -72,6 +76,8 @@ const CurriculumDashboard = () => {
           Pick a class to see its topics. Click a topic to start learning.
         </p>
       </motion.div>
+
+      <StreakBadgesBar streak={g.streakDays} xp={g.xp} coins={g.coins} badges={g.badges} />
 
       <div className="space-y-3">
         {ALL_CLASSES.map((cls, ci) => {

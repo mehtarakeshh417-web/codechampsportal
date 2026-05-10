@@ -22,6 +22,12 @@ import ActivitiesPage from "./pages/ActivitiesPage";
 import RecapPage from "./pages/RecapPage";
 import QuizEngine from "../QuizEngine";
 import CelebrationOverlay from "./CelebrationOverlay";
+import { useLocalGameState } from "../enhancements/useLocalGameState";
+import { sounds } from "../enhancements/soundManager";
+import XPCoinHUD from "../enhancements/XPCoinHUD";
+import ChapterToolbar from "../enhancements/ChapterToolbar";
+import { useAuth } from "@/contexts/AuthContext";
+import { useData } from "@/contexts/DataContext";
 
 const LabPanel = lazy(() => import("../LabPanel"));
 
@@ -45,12 +51,25 @@ export default function ChapterShell({
   const [navOpen, setNavOpen] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const wasCompletedRef = useRef(isCompleted);
+  const lastPageRef = useRef(0);
+
+  // Kid-mode game state
+  const { user } = useAuth();
+  const { students } = useData();
+  const studentId = students.find((s) => s.user_id === user?.id)?.id;
+  const { state: g, update, addXP, earnBadge, touchStreak } = useLocalGameState(studentId);
+  useEffect(() => { touchStreak(); }, [touchStreak]);
 
   // Trigger celebration when isCompleted flips from false → true
   useEffect(() => {
-    if (!wasCompletedRef.current && isCompleted) setCelebrate(true);
+    if (!wasCompletedRef.current && isCompleted) {
+      setCelebrate(true);
+      addXP(50);
+      earnBadge("first-chapter");
+      if (g.soundOn) sounds.fanfare();
+    }
     wasCompletedRef.current = isCompleted;
-  }, [isCompleted]);
+  }, [isCompleted, addXP, earnBadge, g.soundOn]);
 
   // Load bundle when topic changes
   useEffect(() => {
@@ -107,7 +126,13 @@ export default function ChapterShell({
     history.replaceState(null, "", `#p=${safe + 1}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
     setNavOpen(false);
-  }, [pageIdx, pages.length]);
+    // Award XP for advancing to a new page (forward only, once per visit)
+    if (safe > lastPageRef.current) {
+      addXP(5);
+      if (g.soundOn) sounds.whoosh();
+    }
+    lastPageRef.current = safe;
+  }, [pageIdx, pages.length, addXP, g.soundOn]);
 
   const learnPagesTotal = useMemo(
     () => pages.filter((p) => p.kind === "learn").length,
@@ -188,6 +213,30 @@ export default function ChapterShell({
               />
             </div>
           </div>
+
+          {/* Game HUD */}
+          <div className="hidden sm:block shrink-0">
+            <XPCoinHUD xp={g.xp} coins={g.coins} streak={g.streakDays} />
+          </div>
+        </div>
+
+        {/* Tools row */}
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="sm:hidden">
+            <XPCoinHUD xp={g.xp} coins={g.coins} streak={g.streakDays} />
+          </div>
+          <div className="ml-auto">
+            <ChapterToolbar
+              theme={g.theme}
+              soundOn={g.soundOn}
+              focusMode={g.focusMode}
+              dyslexic={g.dyslexicFont}
+              onTheme={(t) => update({ theme: t })}
+              onSound={(v) => { update({ soundOn: v }); if (v) sounds.ding(); }}
+              onFocus={(v) => update({ focusMode: v })}
+              onDyslexic={(v) => update({ dyslexicFont: v })}
+            />
+          </div>
         </div>
 
         {/* Mobile chapter index drawer */}
@@ -227,7 +276,7 @@ export default function ChapterShell({
         </aside>
 
         {/* Page content */}
-        <div className="flex-1 min-w-0">
+        <div className="chapter-main flex-1 min-w-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={`${topic.id}-${pageIdx}`}
@@ -245,6 +294,7 @@ export default function ChapterShell({
                 learnSeen,
                 learnPagesTotal,
                 onTryInLab: goToLab,
+                practiceQs: bundle.practice.questions,
               })}
             </motion.div>
           </AnimatePresence>
@@ -356,6 +406,7 @@ function renderPage(
     learnSeen: number;
     learnPagesTotal: number;
     onTryInLab: () => void;
+    practiceQs: import("@/lib/curriculum/types").PracticeQuestion[];
   },
 ) {
   switch (page.kind) {
@@ -379,6 +430,13 @@ function renderPage(
           pageNumber={ctx.learnSeen}
           totalLearnPages={ctx.learnPagesTotal}
           onTryInLab={page.isCode ? ctx.onTryInLab : undefined}
+          recallQuestions={
+            // Pair each learn page with up to 2 different practice qs
+            ctx.practiceQs.slice(
+              ((ctx.learnSeen - 1) * 2) % Math.max(1, ctx.practiceQs.length),
+              ((ctx.learnSeen - 1) * 2) % Math.max(1, ctx.practiceQs.length) + 2,
+            )
+          }
         />
       );
     case "visual-recap":

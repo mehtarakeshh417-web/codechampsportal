@@ -1,12 +1,14 @@
 // A single learn page = one block from learn.blocks, with image + callout
 // woven inline like a real textbook page.
 import { motion } from "framer-motion";
-import type { LearnBlock, ImageItem } from "@/lib/curriculum/types";
+import type { LearnBlock, ImageItem, PracticeQuestion } from "@/lib/curriculum/types";
 import Callout from "../blocks/Callout";
 import ImageCard from "../blocks/ImageCard";
 import CodeCard from "../blocks/CodeCard";
 import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ReadAloudButton from "../../enhancements/ReadAloudButton";
+import QuickRecallCards from "../../enhancements/QuickRecallCards";
 
 export default function LearnPage({
   block,
@@ -17,6 +19,7 @@ export default function LearnPage({
   pageNumber,
   totalLearnPages,
   onTryInLab,
+  recallQuestions,
 }: {
   block: LearnBlock;
   image?: ImageItem;
@@ -26,10 +29,12 @@ export default function LearnPage({
   pageNumber: number;
   totalLearnPages: number;
   onTryInLab?: () => void;
+  recallQuestions?: PracticeQuestion[];
 }) {
   // Filter out the callout text from bullets so it isn't repeated.
   const bullets = block.bullets?.filter((b) => b !== callout?.text);
   const paragraphs = block.body.split(/\n\n+/);
+  const ttsText = `${block.heading}. ${block.body}. ${(bullets ?? []).join(". ")}`;
 
   return (
     <article className="space-y-6">
@@ -43,12 +48,17 @@ export default function LearnPage({
         )}
       >
         <div className="bg-black/35 -m-4 sm:-m-5 p-4 sm:p-5 rounded-2xl">
-          <div className="text-[11px] uppercase tracking-[0.2em] text-white/70 mb-1">
-            Page {pageNumber} · of {totalLearnPages} lesson pages
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-white/70 mb-1">
+                Page {pageNumber} · of {totalLearnPages} lesson pages
+              </div>
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-white leading-tight">
+                {block.heading}
+              </h2>
+            </div>
+            <ReadAloudButton text={ttsText} className="shrink-0" />
           </div>
-          <h2 className="font-display text-xl sm:text-2xl font-bold text-white leading-tight">
-            {block.heading}
-          </h2>
         </div>
       </motion.header>
 
@@ -114,6 +124,10 @@ export default function LearnPage({
         >
           <Callout tone={callout.tone} text={callout.text} />
         </motion.div>
+      )}
+      {/* Quick Recall flip cards (auto-built from existing practice qs) */}
+      {recallQuestions && recallQuestions.length > 0 && (
+        <QuickRecallCards questions={recallQuestions} />
       )}
     </article>
   );
