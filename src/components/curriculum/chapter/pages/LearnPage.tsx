@@ -125,6 +125,10 @@ export default function LearnPage({
           <Callout tone={callout.tone} text={callout.text} />
         </motion.div>
       )}
+      {/* Quick Recall flip cards (auto-built from existing practice qs) */}
+      {recallQuestions && recallQuestions.length > 0 && (
+        <QuickRecallCards questions={recallQuestions} />
+      )}
     </article>
   );
 }
