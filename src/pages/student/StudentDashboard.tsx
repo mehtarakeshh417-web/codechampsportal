@@ -35,7 +35,8 @@ const StudentDashboard = () => {
   const lvl = xpLevel(xp);
   const progress = Math.round((xp / lvl.next) * 100);
 
-  const curriculum = useMemo(() => getCurriculumForClass(user?.className || ""), [user?.className]);
+  const studentClass = student?.class || user?.className || "";
+  const curriculum = useMemo(() => getCurriculumForClass(studentClass), [studentClass]);
   const dailyTip = useMemo(() => motivationalTips[new Date().getDay() % motivationalTips.length], []);
 
   const [completedTopics, setCompletedTopics] = useState<string[]>([]);
