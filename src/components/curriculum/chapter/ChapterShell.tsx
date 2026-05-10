@@ -145,7 +145,25 @@ export default function ChapterShell({
     .filter((p) => p.kind === "learn").length;
 
   return (
-    <div className="space-y-5">
+    <div
+      className="relative space-y-5"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Ambient decorative blobs (purely visual) */}
+      <div aria-hidden className="pointer-events-none absolute -top-10 -left-10 w-72 h-72 ambient-blob bg-primary/30" />
+      <div aria-hidden className="pointer-events-none absolute top-1/3 -right-16 w-80 h-80 ambient-blob bg-secondary/25" style={{ animationDelay: "-6s" }} />
+      <div aria-hidden className="pointer-events-none absolute bottom-0 left-1/3 w-72 h-72 ambient-blob bg-accent/20" style={{ animationDelay: "-3s" }} />
+
+      <CelebrationOverlay
+        open={celebrate}
+        onClose={() => setCelebrate(false)}
+        title={`${topic.title} ✓`}
+        subtitle="+50 XP · Chapter mastered"
+        badgeLabel={`${classMeta.className} Chapter Champion`}
+        gradient={classMeta.gradient}
+      />
+
       {/* Sticky chapter header */}
       <div className="sticky top-0 z-20 -mx-2 px-2 py-3 bg-background/85 backdrop-blur-md border-b border-white/5">
         <div className="flex items-center gap-3">
