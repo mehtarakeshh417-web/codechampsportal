@@ -24,6 +24,8 @@ const CurriculumDashboard = () => {
   const { classSlug } = useParams<{ classSlug?: string }>();
 
   const student = useMemo(() => students.find((s) => s.user_id === user?.id), [students, user?.id]);
+  const { state: g, touchStreak } = useLocalGameState(student?.id);
+  useEffect(() => { touchStreak(); }, [touchStreak]);
   const studentClassNumber = useMemo(
     () => detectClassNumber(student?.class || user?.className || ""),
     [student?.class, user?.className]
