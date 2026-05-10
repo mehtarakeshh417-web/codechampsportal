@@ -25,7 +25,7 @@ const TeacherCurriculum = () => {
   const navigate = useNavigate();
   const [selectedClass, setSelectedClass] = useState("5th");
   const curriculum = useMemo(() => getCurriculumForClass(selectedClass), [selectedClass]);
-  const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
+  const [expandedSubject, setExpandedSubject] = useState<string | null>(curriculum?.subjects[0]?.id ?? null);
 
   return (
     <div>

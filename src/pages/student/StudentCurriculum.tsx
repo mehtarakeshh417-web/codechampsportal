@@ -32,7 +32,9 @@ const StudentCurriculum = () => {
 
   const [completedTopics, setCompletedTopics] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
+  const [expandedSubject, setExpandedSubject] = useState<string | null>(
+    curriculum?.subjects[0]?.id ?? null
+  );
 
   useEffect(() => {
     if (!student) { setLoading(false); return; }
