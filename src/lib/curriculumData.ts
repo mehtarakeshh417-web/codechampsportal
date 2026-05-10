@@ -184,3 +184,22 @@ export const getCurriculumForClass = (className: string): ClassCurriculum | unde
       c.className.toLowerCase().replace(/\s+/g, "") === normalized
   );
 };
+
+export const countTotalTopics = (curriculum: ClassCurriculum): number =>
+  curriculum.subjects.reduce((sum, s) => sum + s.topics.length, 0);
+
+export const countActivitiesAndProjects = (
+  curriculum: ClassCurriculum
+): { activities: number; projects: number } => {
+  let activities = 0;
+  let projects = 0;
+  for (const sub of curriculum.subjects) {
+    for (const t of sub.topics) {
+      for (const a of t.activities) {
+        if (a.type === "project") projects++;
+        else activities++;
+      }
+    }
+  }
+  return { activities, projects };
+};
