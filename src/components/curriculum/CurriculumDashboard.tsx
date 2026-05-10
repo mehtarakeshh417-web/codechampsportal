@@ -14,6 +14,8 @@ import {
   getTopicsForClass,
   detectClassNumber,
 } from "@/lib/curriculum/registry";
+import { useLocalGameState } from "./enhancements/useLocalGameState";
+import StreakBadgesBar from "./enhancements/StreakBadgesBar";
 
 const CurriculumDashboard = () => {
   const { user } = useAuth();
