@@ -74,7 +74,8 @@ const teacherRoutes = (
     <Route path="projects" element={<TeacherProjects />} />
     <Route path="curriculum" element={<TeacherCurriculum />} />
     <Route path="curriculum/topic/:topicId" element={<TopicViewer />} />
-    <Route path="curriculum/class-:classSlug/:topicSlug" element={<TopicViewer />} />
+    <Route path="curriculum/:classSlug" element={<TeacherCurriculum />} />
+    <Route path="curriculum/:classSlug/:topicSlug" element={<TopicViewer />} />
     <Route path="coding-lab" element={<TeacherCodingLab />} />
     <Route path="student-progress" element={<TeacherStudentProgress />} />
     <Route path="attendance" element={<TeacherAttendance />} />
@@ -90,7 +91,8 @@ const studentRoutes = (
     <Route index element={<StudentDashboard />} />
     <Route path="curriculum" element={<StudentCurriculum />} />
     <Route path="curriculum/topic/:topicId" element={<TopicViewer />} />
-    <Route path="curriculum/class-:classSlug/:topicSlug" element={<TopicViewer />} />
+    <Route path="curriculum/:classSlug" element={<StudentCurriculum />} />
+    <Route path="curriculum/:classSlug/:topicSlug" element={<TopicViewer />} />
     <Route path="progress" element={<StudentProgress />} />
     <Route path="assignments" element={<StudentAssignments />} />
     <Route path="coding-lab" element={<StudentCodingLab />} />
