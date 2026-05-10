@@ -48,12 +48,17 @@ export default function LearnPage({
         )}
       >
         <div className="bg-black/35 -m-4 sm:-m-5 p-4 sm:p-5 rounded-2xl">
-          <div className="text-[11px] uppercase tracking-[0.2em] text-white/70 mb-1">
-            Page {pageNumber} · of {totalLearnPages} lesson pages
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-white/70 mb-1">
+                Page {pageNumber} · of {totalLearnPages} lesson pages
+              </div>
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-white leading-tight">
+                {block.heading}
+              </h2>
+            </div>
+            <ReadAloudButton text={ttsText} className="shrink-0" />
           </div>
-          <h2 className="font-display text-xl sm:text-2xl font-bold text-white leading-tight">
-            {block.heading}
-          </h2>
         </div>
       </motion.header>
 
