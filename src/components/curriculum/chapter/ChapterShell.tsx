@@ -276,7 +276,7 @@ export default function ChapterShell({
         </aside>
 
         {/* Page content */}
-        <div className="flex-1 min-w-0">
+        <div className="chapter-main flex-1 min-w-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={`${topic.id}-${pageIdx}`}
