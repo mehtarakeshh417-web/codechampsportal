@@ -70,13 +70,15 @@ const ICONS = [
 const buildClass = (classId: string, className: string, topicTitles: string[]): ClassCurriculum => ({
   classId,
   className,
-  subjects: topicTitles.map((title, i) => ({
-    id: `${classId}-sub-${i}`,
-    title,
-    icon: ICONS[i % ICONS.length],
-    color: COLORS[i % COLORS.length],
-    topics: [makeTopic(classId, title)],
-  })),
+  subjects: [
+    {
+      id: `${classId}-cs`,
+      title: "Computer Science",
+      icon: "Monitor",
+      color: "neon-blue",
+      topics: topicTitles.map((title) => makeTopic(classId, title)),
+    },
+  ],
 });
 
 export const CURRICULUM: ClassCurriculum[] = [
