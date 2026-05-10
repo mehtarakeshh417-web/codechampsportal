@@ -3,7 +3,7 @@
 // - Derives a sequence of pages and renders only the active one.
 // - Lab editor stays lazy via the existing LabPanel import.
 
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -21,6 +21,7 @@ import VisualRecapPage from "./pages/VisualRecapPage";
 import ActivitiesPage from "./pages/ActivitiesPage";
 import RecapPage from "./pages/RecapPage";
 import QuizEngine from "../QuizEngine";
+import CelebrationOverlay from "./CelebrationOverlay";
 
 const LabPanel = lazy(() => import("../LabPanel"));
 
@@ -42,6 +43,14 @@ export default function ChapterShell({
   const [reloadKey, setReloadKey] = useState(0);
   const [pageIdx, setPageIdx] = useState(0);
   const [navOpen, setNavOpen] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
+  const wasCompletedRef = useRef(isCompleted);
+
+  // Trigger celebration when isCompleted flips from false → true
+  useEffect(() => {
+    if (!wasCompletedRef.current && isCompleted) setCelebrate(true);
+    wasCompletedRef.current = isCompleted;
+  }, [isCompleted]);
 
   // Load bundle when topic changes
   useEffect(() => {
@@ -58,6 +67,32 @@ export default function ChapterShell({
     () => (bundle ? buildChapterPages(bundle, topic.emoji) : []),
     [bundle, topic.emoji],
   );
+
+  // Swipe gesture (mobile)
+  const touchStartX = useRef<number | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 60) return;
+    if (dx < 0) setPageIdx((i) => Math.min(pages.length - 1, i + 1));
+    else setPageIdx((i) => Math.max(0, i - 1));
+  };
+
+  // Keyboard nav (← / →)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "ArrowRight") setPageIdx((i) => Math.min(pages.length - 1, i + 1));
+      if (e.key === "ArrowLeft") setPageIdx((i) => Math.max(0, i - 1));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pages.length]);
 
   // Reset to page 1 on topic change, sync hash on page change
   useEffect(() => {
@@ -110,7 +145,25 @@ export default function ChapterShell({
     .filter((p) => p.kind === "learn").length;
 
   return (
-    <div className="space-y-5">
+    <div
+      className="relative space-y-5"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Ambient decorative blobs (purely visual) */}
+      <div aria-hidden className="pointer-events-none absolute -top-10 -left-10 w-72 h-72 ambient-blob bg-primary/30" />
+      <div aria-hidden className="pointer-events-none absolute top-1/3 -right-16 w-80 h-80 ambient-blob bg-secondary/25" style={{ animationDelay: "-6s" }} />
+      <div aria-hidden className="pointer-events-none absolute bottom-0 left-1/3 w-72 h-72 ambient-blob bg-accent/20" style={{ animationDelay: "-3s" }} />
+
+      <CelebrationOverlay
+        open={celebrate}
+        onClose={() => setCelebrate(false)}
+        title={`${topic.title} ✓`}
+        subtitle="+50 XP · Chapter mastered"
+        badgeLabel={`${classMeta.className} Chapter Champion`}
+        gradient={classMeta.gradient}
+      />
+
       {/* Sticky chapter header */}
       <div className="sticky top-0 z-20 -mx-2 px-2 py-3 bg-background/85 backdrop-blur-md border-b border-white/5">
         <div className="flex items-center gap-3">
