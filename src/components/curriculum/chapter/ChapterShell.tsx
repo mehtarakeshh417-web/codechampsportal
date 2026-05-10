@@ -43,6 +43,39 @@ export default function ChapterShell({
   const [reloadKey, setReloadKey] = useState(0);
   const [pageIdx, setPageIdx] = useState(0);
   const [navOpen, setNavOpen] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
+  const wasCompletedRef = useRef(isCompleted);
+
+  // Trigger celebration when isCompleted flips from false → true
+  useEffect(() => {
+    if (!wasCompletedRef.current && isCompleted) setCelebrate(true);
+    wasCompletedRef.current = isCompleted;
+  }, [isCompleted]);
+
+  // Swipe gesture refs
+  const touchStartX = useRef<number | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 60) return;
+    if (dx < 0) setPageIdx((i) => Math.min(pages.length - 1, i + 1));
+    else setPageIdx((i) => Math.max(0, i - 1));
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === "INPUT") return;
+      if (e.key === "ArrowRight") setPageIdx((i) => Math.min(pages.length - 1, i + 1));
+      if (e.key === "ArrowLeft") setPageIdx((i) => Math.max(0, i - 1));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pages.length]);
 
   // Load bundle when topic changes
   useEffect(() => {
