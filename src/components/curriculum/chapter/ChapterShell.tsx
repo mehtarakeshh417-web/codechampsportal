@@ -22,6 +22,12 @@ import ActivitiesPage from "./pages/ActivitiesPage";
 import RecapPage from "./pages/RecapPage";
 import QuizEngine from "../QuizEngine";
 import CelebrationOverlay from "./CelebrationOverlay";
+import { useLocalGameState } from "../enhancements/useLocalGameState";
+import { sounds } from "../enhancements/soundManager";
+import XPCoinHUD from "../enhancements/XPCoinHUD";
+import ChapterToolbar from "../enhancements/ChapterToolbar";
+import { useAuth } from "@/contexts/AuthContext";
+import { useData } from "@/contexts/DataContext";
 
 const LabPanel = lazy(() => import("../LabPanel"));
 
