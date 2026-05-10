@@ -1,5 +1,4 @@
-// Class-wise curriculum data (Avartan)
-// Topics replaced per Avartan curriculum spec.
+// Class-wise curriculum data (Avartan).
 
 export interface TopicContent {
   id: string;
