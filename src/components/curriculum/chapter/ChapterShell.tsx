@@ -439,6 +439,16 @@ function renderPage(
           }
         />
       );
+    case "video":
+      return (
+        <WatchAndLearn
+          topicId={ctx.topic.id}
+          topicTitle={ctx.topic.title}
+          topicEmoji={ctx.topic.emoji}
+          classNumber={ctx.classMeta.classNumber}
+          gradient={ctx.classMeta.gradient}
+        />
+      );
     case "visual-recap":
       return <VisualRecapPage items={page.items} gradient={ctx.classMeta.gradient} />;
     case "activities":
