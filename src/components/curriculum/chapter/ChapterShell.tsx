@@ -51,12 +51,25 @@ export default function ChapterShell({
   const [navOpen, setNavOpen] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const wasCompletedRef = useRef(isCompleted);
+  const lastPageRef = useRef(0);
+
+  // Kid-mode game state
+  const { user } = useAuth();
+  const { students } = useData();
+  const studentId = students.find((s) => s.user_id === user?.id)?.id;
+  const { state: g, update, addXP, earnBadge, touchStreak } = useLocalGameState(studentId);
+  useEffect(() => { touchStreak(); }, [touchStreak]);
 
   // Trigger celebration when isCompleted flips from false → true
   useEffect(() => {
-    if (!wasCompletedRef.current && isCompleted) setCelebrate(true);
+    if (!wasCompletedRef.current && isCompleted) {
+      setCelebrate(true);
+      addXP(50);
+      earnBadge("first-chapter");
+      if (g.soundOn) sounds.fanfare();
+    }
     wasCompletedRef.current = isCompleted;
-  }, [isCompleted]);
+  }, [isCompleted, addXP, earnBadge, g.soundOn]);
 
   // Load bundle when topic changes
   useEffect(() => {
