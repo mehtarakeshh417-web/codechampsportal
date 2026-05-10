@@ -27,14 +27,19 @@ const StudentCurriculum = () => {
   const { user } = useAuth();
   const { students } = useData();
   const navigate = useNavigate();
-  const curriculum = useMemo(() => getCurriculumForClass(user?.className || ""), [user?.className]);
   const student = useMemo(() => students.find((s) => s.user_id === user?.id), [students, user?.id]);
+  const studentClass = student?.class || user?.className || "";
+  const curriculum = useMemo(() => getCurriculumForClass(studentClass), [studentClass]);
 
   const [completedTopics, setCompletedTopics] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSubject, setExpandedSubject] = useState<string | null>(
     curriculum?.subjects[0]?.id ?? null
   );
+
+  useEffect(() => {
+    setExpandedSubject(curriculum?.subjects[0]?.id ?? null);
+  }, [curriculum]);
 
   useEffect(() => {
     if (!student) { setLoading(false); return; }
