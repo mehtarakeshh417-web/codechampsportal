@@ -3,7 +3,7 @@
 // - Derives a sequence of pages and renders only the active one.
 // - Lab editor stays lazy via the existing LabPanel import.
 
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -21,6 +21,7 @@ import VisualRecapPage from "./pages/VisualRecapPage";
 import ActivitiesPage from "./pages/ActivitiesPage";
 import RecapPage from "./pages/RecapPage";
 import QuizEngine from "../QuizEngine";
+import CelebrationOverlay from "./CelebrationOverlay";
 
 const LabPanel = lazy(() => import("../LabPanel"));
 
