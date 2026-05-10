@@ -175,20 +175,20 @@ const CurriculumDashboard = () => {
                             key={t.id}
                             to={`/dashboard/curriculum/${cls.classSlug}/${t.topicSlug}`}
                             className={cn(
-                              "flex items-center gap-3 p-3 rounded-xl border transition-all",
+                              "group/topic relative overflow-hidden flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 hover:-translate-y-0.5",
                               done
-                                ? "bg-neon-green/[0.06] border-neon-green/20 hover:bg-neon-green/[0.1]"
-                                : "bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-white/20"
+                                ? "bg-neon-green/[0.06] border-neon-green/25 hover:border-neon-green/45 hover:shadow-[0_8px_22px_-10px_hsl(145_80%_50%/0.5)]"
+                                : "bg-white/[0.03] border-white/10 hover:border-primary/35 hover:shadow-[0_8px_22px_-10px_hsl(var(--primary)/0.45)]"
                             )}
                           >
-                            <span className="text-2xl shrink-0">{t.emoji}</span>
+                            <span className="text-2xl shrink-0 transition-transform group-hover/topic:scale-110 group-hover/topic:rotate-[-4deg]">{t.emoji}</span>
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-semibold text-foreground truncate">{t.title}</div>
                               <div className="text-[11px] text-foreground/45 truncate">{t.shortDescription}</div>
                             </div>
                             {done
                               ? <CheckCircle2 className="w-4 h-4 text-neon-green shrink-0" />
-                              : <Circle className="w-4 h-4 text-foreground/25 shrink-0" />}
+                              : <Circle className="w-4 h-4 text-foreground/25 shrink-0 group-hover/topic:text-primary/70 transition-colors" />}
                           </Link>
                         );
                       })}
