@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.canva-oauth]
 verify_jwt = false
+
+[functions.generate-topic-content]
+verify_jwt = false

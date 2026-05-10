@@ -160,17 +160,13 @@ const StudentCurriculum = () => {
                                     {hasTextbook ? `${textbook!.pages.length} pages` : `${topic.lessons.length} lessons`} · {topic.activities.length} activities
                                   </span>
                                 </div>
-                                {hasTextbook ? (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => navigate(`/dashboard/curriculum/topic/${topic.id}`)}
-                                    className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 gap-1 text-xs"
-                                  >
-                                    Open Textbook <ArrowRight className="w-3 h-3" />
-                                  </Button>
-                                ) : (
-                                  <span className="text-xs text-white/30 font-body">Basic content</span>
-                                )}
+                                <Button
+                                  size="sm"
+                                  onClick={() => navigate(`/dashboard/curriculum/topic/${topic.id}`)}
+                                  className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 gap-1 text-xs"
+                                >
+                                  {hasTextbook ? "Open Textbook" : "Open Lesson"} <ArrowRight className="w-3 h-3" />
+                                </Button>
                               </div>
                             </motion.div>
                           );

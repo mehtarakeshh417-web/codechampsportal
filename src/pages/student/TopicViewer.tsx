@@ -11,6 +11,7 @@ import { BookOpen, ChevronLeft, ArrowLeft, ArrowRight, CheckCircle2, Award, Spar
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import AITopicViewer from "./AITopicViewer";
 
 import TopicSidebar from "@/components/topic-viewer/TopicSidebar";
 import TopicProgressPanel from "@/components/topic-viewer/TopicProgressPanel";
@@ -106,23 +107,9 @@ const TopicViewer = () => {
   const moduleTotalTopics = currentSubject?.topics.length || 0;
   const moduleCompletedTopics = currentSubject?.topics.filter((t) => completedTopics.includes(t.id)).length || 0;
 
+  // No static textbook? Use the AI-generated tabbed viewer.
   if (!textbook) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center py-24"
-      >
-        <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/[0.08] flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-black/20">
-          <BookOpen className="w-10 h-10 text-foreground/15" />
-        </div>
-        <h2 className="font-display text-xl text-foreground/50 mb-2">Content Coming Soon</h2>
-        <p className="text-foreground/30 font-body text-sm mb-8 max-w-sm mx-auto">This topic's premium content is being prepared. Check back soon!</p>
-        <Button variant="ghost" onClick={() => navigate("/dashboard/curriculum")} className="text-primary gap-2 rounded-xl">
-          <ChevronLeft className="w-4 h-4" /> Back to Curriculum
-        </Button>
-      </motion.div>
-    );
+    return <AITopicViewer />;
   }
 
   const totalPages = textbook.pages.length;
