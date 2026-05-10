@@ -34,6 +34,7 @@ export default function LearnPage({
   // Filter out the callout text from bullets so it isn't repeated.
   const bullets = block.bullets?.filter((b) => b !== callout?.text);
   const paragraphs = block.body.split(/\n\n+/);
+  const ttsText = `${block.heading}. ${block.body}. ${(bullets ?? []).join(". ")}`;
 
   return (
     <article className="space-y-6">
