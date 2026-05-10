@@ -406,6 +406,7 @@ function renderPage(
     learnSeen: number;
     learnPagesTotal: number;
     onTryInLab: () => void;
+    practiceQs: import("@/lib/curriculum/types").PracticeQuestion[];
   },
 ) {
   switch (page.kind) {
@@ -429,6 +430,13 @@ function renderPage(
           pageNumber={ctx.learnSeen}
           totalLearnPages={ctx.learnPagesTotal}
           onTryInLab={page.isCode ? ctx.onTryInLab : undefined}
+          recallQuestions={
+            // Pair each learn page with up to 2 different practice qs
+            ctx.practiceQs.slice(
+              ((ctx.learnSeen - 1) * 2) % Math.max(1, ctx.practiceQs.length),
+              ((ctx.learnSeen - 1) * 2) % Math.max(1, ctx.practiceQs.length) + 2,
+            )
+          }
         />
       );
     case "visual-recap":
