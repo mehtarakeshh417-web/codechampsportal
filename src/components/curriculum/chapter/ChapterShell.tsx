@@ -21,6 +21,7 @@ import VisualRecapPage from "./pages/VisualRecapPage";
 import ActivitiesPage from "./pages/ActivitiesPage";
 import RecapPage from "./pages/RecapPage";
 import QuizEngine from "../QuizEngine";
+import WatchAndLearn from "./blocks/WatchAndLearn";
 import CelebrationOverlay from "./CelebrationOverlay";
 import { useLocalGameState } from "../enhancements/useLocalGameState";
 import { sounds } from "../enhancements/soundManager";
@@ -437,6 +438,16 @@ function renderPage(
               ((ctx.learnSeen - 1) * 2) % Math.max(1, ctx.practiceQs.length) + 2,
             )
           }
+        />
+      );
+    case "video":
+      return (
+        <WatchAndLearn
+          topicId={ctx.topic.id}
+          topicTitle={ctx.topic.title}
+          topicEmoji={ctx.topic.emoji}
+          classNumber={ctx.classMeta.classNumber}
+          gradient={ctx.classMeta.gradient}
         />
       );
     case "visual-recap":

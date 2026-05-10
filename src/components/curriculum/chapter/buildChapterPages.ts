@@ -24,6 +24,7 @@ export type ChapterPage =
       callout?: { tone: "tip" | "important" | "fun"; text: string };
       isCode?: boolean;
     }
+  | { kind: "video"; title: string; emoji: string }
   | { kind: "visual-recap"; title: string; emoji: string; items: ImageItem[] }
   | { kind: "activities"; title: string; emoji: string; items: ActivityItem[] }
   | { kind: "practice"; title: string; emoji: string; questions: PracticeQuestion[] }
@@ -86,6 +87,14 @@ export function buildChapterPages(
       items: images,
     });
   }
+
+  // Watch & Learn — embedded YouTube video, before activities/practice
+  pages.push({
+    kind: "video",
+    title: "Watch & Learn",
+    emoji: "🎥",
+  });
+
 
   // Activities
   if (bundle.activities.items.length > 0) {
