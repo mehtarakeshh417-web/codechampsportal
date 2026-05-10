@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { getCurriculumForClass } from "@/lib/curriculumData";
@@ -27,6 +27,10 @@ const TeacherCurriculum = () => {
   const curriculum = useMemo(() => getCurriculumForClass(selectedClass), [selectedClass]);
   const [expandedSubject, setExpandedSubject] = useState<string | null>(curriculum?.subjects[0]?.id ?? null);
 
+  useEffect(() => {
+    setExpandedSubject(curriculum?.subjects[0]?.id ?? null);
+  }, [curriculum]);
+
   return (
     <div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -37,7 +41,7 @@ const TeacherCurriculum = () => {
       {/* Class Selector */}
       <div className="flex flex-wrap gap-2 mb-6">
         {CLASS_OPTIONS.map((cls) => (
-          <button key={cls} onClick={() => { setSelectedClass(cls); setExpandedSubject(null); }}
+          <button key={cls} onClick={() => setSelectedClass(cls)}
             className={`px-4 py-2 rounded-xl text-sm font-body font-bold transition-all ${
               selectedClass === cls
                 ? "bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--secondary))] text-white shadow-lg"
