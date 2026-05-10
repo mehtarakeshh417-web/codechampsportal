@@ -294,6 +294,7 @@ export default function ChapterShell({
                 learnSeen,
                 learnPagesTotal,
                 onTryInLab: goToLab,
+                practiceQs: bundle.practice.questions,
               })}
             </motion.div>
           </AnimatePresence>
