@@ -25,7 +25,7 @@ const colorMap: Record<string, string> = {
 
 const StudentCurriculum = () => {
   const { user } = useAuth();
-  const { students } = useData();
+  const { students, loading: dataLoading } = useData();
   const navigate = useNavigate();
   const student = useMemo(() => students.find((s) => s.user_id === user?.id), [students, user?.id]);
   const studentClass = student?.class || user?.className || "";
@@ -70,6 +70,10 @@ const StudentCurriculum = () => {
     // Refresh student data so XP updates everywhere
     await refreshData();
   }, [student, completedTopics, refreshData]);
+
+  if (dataLoading && !curriculum) {
+    return <div className="text-center py-12 text-white/40 font-body">Loading...</div>;
+  }
 
   if (!curriculum) {
     return (
