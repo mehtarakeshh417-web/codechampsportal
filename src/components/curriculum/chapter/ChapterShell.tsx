@@ -21,6 +21,7 @@ import VisualRecapPage from "./pages/VisualRecapPage";
 import ActivitiesPage from "./pages/ActivitiesPage";
 import RecapPage from "./pages/RecapPage";
 import QuizEngine from "../QuizEngine";
+import WatchAndLearn from "./blocks/WatchAndLearn";
 import CelebrationOverlay from "./CelebrationOverlay";
 import { useLocalGameState } from "../enhancements/useLocalGameState";
 import { sounds } from "../enhancements/soundManager";
