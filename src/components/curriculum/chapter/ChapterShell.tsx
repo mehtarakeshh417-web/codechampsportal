@@ -126,7 +126,13 @@ export default function ChapterShell({
     history.replaceState(null, "", `#p=${safe + 1}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
     setNavOpen(false);
-  }, [pageIdx, pages.length]);
+    // Award XP for advancing to a new page (forward only, once per visit)
+    if (safe > lastPageRef.current) {
+      addXP(5);
+      if (g.soundOn) sounds.whoosh();
+    }
+    lastPageRef.current = safe;
+  }, [pageIdx, pages.length, addXP, g.soundOn]);
 
   const learnPagesTotal = useMemo(
     () => pages.filter((p) => p.kind === "learn").length,
