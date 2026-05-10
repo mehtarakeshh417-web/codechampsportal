@@ -77,6 +77,8 @@ const CurriculumDashboard = () => {
         </p>
       </motion.div>
 
+      <StreakBadgesBar streak={g.streakDays} xp={g.xp} coins={g.coins} badges={g.badges} />
+
       <div className="space-y-3">
         {ALL_CLASSES.map((cls, ci) => {
           const isOpen = openClass === cls.classNumber;
