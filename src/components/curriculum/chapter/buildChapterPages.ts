@@ -88,6 +88,14 @@ export function buildChapterPages(
     });
   }
 
+  // Watch & Learn — embedded YouTube video, before activities/practice
+  pages.push({
+    kind: "video",
+    title: "Watch & Learn",
+    emoji: "🎥",
+  });
+
+
   // Activities
   if (bundle.activities.items.length > 0) {
     pages.push({
