@@ -213,6 +213,30 @@ export default function ChapterShell({
               />
             </div>
           </div>
+
+          {/* Game HUD */}
+          <div className="hidden sm:block shrink-0">
+            <XPCoinHUD xp={g.xp} coins={g.coins} streak={g.streakDays} />
+          </div>
+        </div>
+
+        {/* Tools row */}
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="sm:hidden">
+            <XPCoinHUD xp={g.xp} coins={g.coins} streak={g.streakDays} />
+          </div>
+          <div className="ml-auto">
+            <ChapterToolbar
+              theme={g.theme}
+              soundOn={g.soundOn}
+              focusMode={g.focusMode}
+              dyslexic={g.dyslexicFont}
+              onTheme={(t) => update({ theme: t })}
+              onSound={(v) => { update({ soundOn: v }); if (v) sounds.ding(); }}
+              onFocus={(v) => update({ focusMode: v })}
+              onDyslexic={(v) => update({ dyslexicFont: v })}
+            />
+          </div>
         </div>
 
         {/* Mobile chapter index drawer */}
