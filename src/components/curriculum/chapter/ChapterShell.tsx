@@ -52,31 +52,6 @@ export default function ChapterShell({
     wasCompletedRef.current = isCompleted;
   }, [isCompleted]);
 
-  // Swipe gesture refs
-  const touchStartX = useRef<number | null>(null);
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current == null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
-    if (Math.abs(dx) < 60) return;
-    if (dx < 0) setPageIdx((i) => Math.min(pages.length - 1, i + 1));
-    else setPageIdx((i) => Math.max(0, i - 1));
-  };
-
-  // Keyboard navigation
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === "INPUT") return;
-      if (e.key === "ArrowRight") setPageIdx((i) => Math.min(pages.length - 1, i + 1));
-      if (e.key === "ArrowLeft") setPageIdx((i) => Math.max(0, i - 1));
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [pages.length]);
-
   // Load bundle when topic changes
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +67,32 @@ export default function ChapterShell({
     () => (bundle ? buildChapterPages(bundle, topic.emoji) : []),
     [bundle, topic.emoji],
   );
+
+  // Swipe gesture (mobile)
+  const touchStartX = useRef<number | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 60) return;
+    if (dx < 0) setPageIdx((i) => Math.min(pages.length - 1, i + 1));
+    else setPageIdx((i) => Math.max(0, i - 1));
+  };
+
+  // Keyboard nav (← / →)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "ArrowRight") setPageIdx((i) => Math.min(pages.length - 1, i + 1));
+      if (e.key === "ArrowLeft") setPageIdx((i) => Math.max(0, i - 1));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pages.length]);
 
   // Reset to page 1 on topic change, sync hash on page change
   useEffect(() => {
