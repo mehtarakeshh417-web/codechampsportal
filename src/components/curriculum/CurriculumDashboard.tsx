@@ -93,36 +93,69 @@ const CurriculumDashboard = () => {
                   setOpenClass(next);
                   navigate(next ? `/dashboard/curriculum/${cls.classSlug}` : "/dashboard/curriculum", { replace: true });
                 }}
-                className="w-full glass-card p-4 md:p-5 flex items-center gap-4 hover:bg-white/[0.04] transition-colors group"
+                className={cn(
+                  "relative overflow-hidden w-full glass-card sweep p-4 md:p-5 flex items-center gap-4 transition-all duration-300 group",
+                  "hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_-18px_hsl(var(--primary)/0.45)]",
+                  isOpen && "border-primary/30 shadow-[0_18px_50px_-18px_hsl(var(--primary)/0.35)]",
+                )}
               >
+                {/* gradient corner glow */}
+                <div
+                  aria-hidden
+                  className={cn(
+                    "pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-40 blur-3xl bg-gradient-to-br",
+                    cls.gradient,
+                  )}
+                />
+
                 <div className={cn(
-                  "w-14 h-14 shrink-0 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl shadow-lg",
+                  "relative w-14 h-14 shrink-0 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl shadow-lg transition-transform group-hover:scale-105 group-hover:rotate-[-3deg]",
                   cls.gradient
                 )}>
                   {cls.emoji}
                 </div>
-                <div className="flex-1 text-left min-w-0">
+                <div className="relative flex-1 text-left min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-display text-lg font-bold text-foreground">{cls.className}</h3>
                     <span className="text-[10px] uppercase tracking-wider text-foreground/40 px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
                       {cls.ageRange}
                     </span>
+                    {pct === 100 && (
+                      <span className="badge-pop text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-400/15 border border-emerald-400/30 text-emerald-300 font-bold">
+                        ⭐ Mastered
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-foreground/55 mt-0.5 truncate">{cls.description}</p>
                   <div className="mt-2 flex items-center gap-2">
                     <div className="flex-1 max-w-[220px] h-1.5 rounded-full bg-white/10 overflow-hidden">
                       <div
-                        className={cn("h-full rounded-full bg-gradient-to-r", cls.gradient)}
+                        className={cn("h-full rounded-full bg-gradient-to-r transition-all duration-700", cls.gradient)}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
                     <span className="text-[11px] text-foreground/45">{doneCount}/{topics.length}</span>
                   </div>
                 </div>
+
+                {/* circular progress ring */}
+                <div className="relative shrink-0 w-12 h-12 hidden sm:flex items-center justify-center">
+                  <svg viewBox="0 0 36 36" className="w-12 h-12 -rotate-90">
+                    <circle cx="18" cy="18" r="16" fill="none" stroke="hsl(var(--foreground)/0.1)" strokeWidth="3" />
+                    <circle
+                      cx="18" cy="18" r="16" fill="none"
+                      stroke="hsl(var(--primary))" strokeWidth="3" strokeLinecap="round"
+                      strokeDasharray={`${(pct / 100) * 100.53} 100.53`}
+                      className="transition-all duration-700"
+                    />
+                  </svg>
+                  <span className="absolute text-[10px] font-bold text-foreground/80">{Math.round(pct)}%</span>
+                </div>
+
                 {isOpen ? (
-                  <ChevronDown className="w-5 h-5 text-foreground/40" />
+                  <ChevronDown className="relative w-5 h-5 text-foreground/40" />
                 ) : (
-                  <ChevronRight className="w-5 h-5 text-foreground/40 group-hover:translate-x-0.5 transition-transform" />
+                  <ChevronRight className="relative w-5 h-5 text-foreground/40 group-hover:translate-x-0.5 transition-transform" />
                 )}
               </button>
 
