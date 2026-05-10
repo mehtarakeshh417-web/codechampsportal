@@ -140,6 +140,24 @@ const placeholderFor = (section: TabKey, topicId: string): NonNullable<TopicCont
 };
 
 /**
+ * Load the entire topic bundle (used by the multi-page chapter view).
+ * Sections that are missing fall back to placeholders so the UI is always
+ * fully populated.
+ */
+export async function loadTopicBundle(topicId: string): Promise<Required<TopicContentBundle>> {
+  const bundle = await loadBundle(topicId);
+  return {
+    overview:   (bundle.overview   ?? placeholderOverview(topicId))   as OverviewContent,
+    learn:      (bundle.learn      ?? placeholderLearn(topicId))      as LearnContent,
+    images:     (bundle.images     ?? placeholderImages())             as ImagesContent,
+    activities: (bundle.activities ?? placeholderActivities(topicId)) as ActivitiesContent,
+    practice:   (bundle.practice   ?? placeholderPractice())           as PracticeContent,
+    quiz:       (bundle.quiz       ?? placeholderQuiz())               as QuizContent,
+    lab:        (bundle.lab        ?? placeholderLab(topicId))         as LabContent,
+  };
+}
+
+/**
  * Load a single section of a topic. Returns real content if the topic
  * has a content module that defines the section, else a placeholder.
  */
