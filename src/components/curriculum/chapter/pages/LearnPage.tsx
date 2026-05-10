@@ -1,12 +1,14 @@
 // A single learn page = one block from learn.blocks, with image + callout
 // woven inline like a real textbook page.
 import { motion } from "framer-motion";
-import type { LearnBlock, ImageItem } from "@/lib/curriculum/types";
+import type { LearnBlock, ImageItem, PracticeQuestion } from "@/lib/curriculum/types";
 import Callout from "../blocks/Callout";
 import ImageCard from "../blocks/ImageCard";
 import CodeCard from "../blocks/CodeCard";
 import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ReadAloudButton from "../../enhancements/ReadAloudButton";
+import QuickRecallCards from "../../enhancements/QuickRecallCards";
 
 export default function LearnPage({
   block,
@@ -17,6 +19,7 @@ export default function LearnPage({
   pageNumber,
   totalLearnPages,
   onTryInLab,
+  recallQuestions,
 }: {
   block: LearnBlock;
   image?: ImageItem;
@@ -26,6 +29,7 @@ export default function LearnPage({
   pageNumber: number;
   totalLearnPages: number;
   onTryInLab?: () => void;
+  recallQuestions?: PracticeQuestion[];
 }) {
   // Filter out the callout text from bullets so it isn't repeated.
   const bullets = block.bullets?.filter((b) => b !== callout?.text);
