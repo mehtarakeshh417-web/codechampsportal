@@ -1,6 +1,7 @@
 // Returns an embeddable Office Online edit URL for a shared blank Word/Excel/PowerPoint
 // document hosted in the connected Microsoft 365 account.
 // All students/teachers who open the same `kind` will edit the SAME shared document.
+// v2 — redeploy trigger
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
