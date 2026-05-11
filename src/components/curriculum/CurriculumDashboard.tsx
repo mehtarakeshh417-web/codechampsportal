@@ -230,6 +230,14 @@ const CurriculumDashboard = () => {
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-semibold text-foreground truncate">{t.title}</div>
                               <div className="text-[11px] text-foreground/45 truncate">{t.shortDescription}</div>
+                              <div className="mt-0.5 flex items-center gap-1 text-[10px]">
+                                <span className="text-amber-300/90 tracking-tight">
+                                  {done ? "★★★" : "☆☆☆"}
+                                </span>
+                                <span className={cn("font-bold", done ? "text-emerald-300" : "text-cyan-300/80")}>
+                                  {done ? "+80 XP earned" : "+80 XP available"}
+                                </span>
+                              </div>
                             </div>
                             {done
                               ? <CheckCircle2 className="w-4 h-4 text-neon-green shrink-0" />
