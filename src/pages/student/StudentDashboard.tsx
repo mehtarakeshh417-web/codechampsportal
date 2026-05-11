@@ -6,6 +6,8 @@ import { getCurriculumForClass, countTotalTopics, countActivitiesAndProjects } f
 import { Trophy, Target, BookOpen, Award, TrendingUp, Gamepad2, Megaphone, Flame, Sparkles, ChevronRight, Keyboard, Layers, Code, FileText } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useGameState } from "@/hooks/useGameState";
+import StreakBadgesBar from "@/components/curriculum/enhancements/StreakBadgesBar";
 
 const xpLevel = (xp: number) => {
   if (xp < 500) return { level: 1, title: "Byte Beginner", next: 500, emoji: "🌱" };
@@ -31,7 +33,9 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
 
   const student = students.find((s) => s.user_id === user?.id);
-  const xp = student?.xp || 0;
+  const { state: g, touchStreak } = useGameState();
+  useEffect(() => { touchStreak(); }, [touchStreak]);
+  const xp = Math.max(student?.xp || 0, g.xp);
   const lvl = xpLevel(xp);
   const progress = Math.round((xp / lvl.next) * 100);
 
