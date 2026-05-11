@@ -1,14 +1,14 @@
 import { motion } from "framer-motion";
-import { Code, Terminal, Gamepad2, Palette, Coffee, Paintbrush, FileText, Table2, Presentation, ImageIcon, PenTool, LayoutDashboard } from "lucide-react";
+import { Code, Terminal, Gamepad2, Palette, Coffee, Paintbrush, FileText, Table2, Presentation } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
 import {
   HtmlEditor, PythonEditor, JavaEditor, MsPaintEditor, MsWordEditor,
-  MsExcelEditor, MsPowerPointEditor, GimpEditor, KritaEditor, ScratchEditor, ScratchJrEditor, CanvaEditor,
+  MsExcelEditor, MsPowerPointEditor, ScratchEditor, ScratchJrEditor,
   WordProEditor, ExcelProEditor, PowerPointProEditor,
 } from "@/components/coding-lab/editors";
 
-const ALL_EDITORS = ["html", "python", "java", "scratch", "scratchjr", "mspaint", "krita", "msword", "msexcel", "mspowerpoint", "gimp", "canva", "word2", "excel2", "ppt2"];
+const ALL_EDITORS = ["html", "python", "java", "scratch", "scratchjr", "mspaint", "msword", "msexcel", "mspowerpoint", "word2", "excel2", "ppt2"];
 
 const editorMeta: Record<string, { label: string; icon: React.ElementType; component: React.FC }> = {
   html:          { label: "HTML/CSS/JS",    icon: Code,         component: HtmlEditor },
@@ -20,9 +20,6 @@ const editorMeta: Record<string, { label: string; icon: React.ElementType; compo
   msword:        { label: "MS Word",        icon: FileText,     component: MsWordEditor },
   msexcel:       { label: "MS Excel",       icon: Table2,       component: MsExcelEditor },
   mspowerpoint:  { label: "PowerPoint",     icon: Presentation, component: MsPowerPointEditor },
-  gimp:          { label: "GIMP",           icon: ImageIcon,    component: GimpEditor },
-  krita:         { label: "Krita",          icon: PenTool,      component: KritaEditor },
-  canva:         { label: "Design",         icon: LayoutDashboard, component: CanvaEditor },
   word2:         { label: "Word 2",         icon: FileText,     component: WordProEditor },
   excel2:        { label: "Excel 2",        icon: Table2,       component: ExcelProEditor },
   ppt2:          { label: "PPT 2",          icon: Presentation, component: PowerPointProEditor },
