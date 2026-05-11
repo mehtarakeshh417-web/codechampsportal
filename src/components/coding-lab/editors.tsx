@@ -7,7 +7,9 @@ import SimulatedKritaEditor from "./SimulatedKritaEditor";
 import SimulatedWordEditor from "./SimulatedWordEditor";
 import SimulatedExcelEditor from "./SimulatedExcelEditor";
 import SimulatedPowerPointEditor from "./SimulatedPowerPointEditor";
-import OfficeLiveEditor from "./OfficeLiveEditor";
+import WordPro from "./WordPro";
+import ExcelPro from "./ExcelPro";
+import PowerPointPro from "./PowerPointPro";
 
 // Helper to download a blob
 const downloadFile = (content: string, filename: string, mimeType: string) => {
