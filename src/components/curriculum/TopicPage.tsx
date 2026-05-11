@@ -72,6 +72,7 @@ const TopicPage = () => {
       setIsCompleted(true);
       toast.success("Chapter completed! +50 XP 🎉");
     }
+    window.dispatchEvent(new CustomEvent("topic-completion-changed"));
     await refreshData();
   }, [student, topic, isCompleted, refreshData]);
 

@@ -75,14 +75,16 @@ const CurriculumDashboard = () => {
 
   useEffect(() => { refetchCompletions(); }, [refetchCompletions]);
 
-  // Refetch when window regains focus (e.g. after marking a topic complete)
+  // Refetch when window regains focus or a topic completion changes
   useEffect(() => {
-    const onFocus = () => refetchCompletions();
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onFocus);
+    const onChange = () => refetchCompletions();
+    window.addEventListener("focus", onChange);
+    document.addEventListener("visibilitychange", onChange);
+    window.addEventListener("topic-completion-changed", onChange);
     return () => {
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("focus", onChange);
+      document.removeEventListener("visibilitychange", onChange);
+      window.removeEventListener("topic-completion-changed", onChange);
     };
   }, [refetchCompletions]);
 
