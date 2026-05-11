@@ -159,6 +159,7 @@ const TopicPage = () => {
           next={next}
           isCompleted={isCompleted}
           onMarkComplete={toggleComplete}
+          canComplete={user?.role === "student"}
         />
       </div>
     </div>

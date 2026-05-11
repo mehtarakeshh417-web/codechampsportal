@@ -13,6 +13,7 @@ export default function RecapPage({
   next,
   isCompleted,
   onComplete,
+  canComplete = true,
 }: {
   summary: string;
   objectives: string[];
@@ -21,6 +22,7 @@ export default function RecapPage({
   next?: TopicMeta;
   isCompleted: boolean;
   onComplete: () => void;
+  canComplete?: boolean;
 }) {
   return (
     <section className="space-y-6">
@@ -62,18 +64,20 @@ export default function RecapPage({
       </section>
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <Button
-          onClick={onComplete}
-          size="lg"
-          variant={isCompleted ? "outline" : "default"}
-          className={cn(
-            "flex-1 gap-2",
-            isCompleted && "border-neon-green/40 text-neon-green",
-          )}
-        >
-          <Trophy className="w-4 h-4" />
-          {isCompleted ? "Marked Complete ✓" : "Mark Chapter Complete"}
-        </Button>
+        {canComplete && (
+          <Button
+            onClick={onComplete}
+            size="lg"
+            variant={isCompleted ? "outline" : "default"}
+            className={cn(
+              "flex-1 gap-2",
+              isCompleted && "border-neon-green/40 text-neon-green",
+            )}
+          >
+            <Trophy className="w-4 h-4" />
+            {isCompleted ? "Marked Complete ✓" : "Mark Chapter Complete"}
+          </Button>
+        )}
         {next ? (
           <Button asChild size="lg" variant="secondary" className="flex-1 gap-2">
             <Link to={`/dashboard/curriculum/${classSlug}/${next.topicSlug}`}>

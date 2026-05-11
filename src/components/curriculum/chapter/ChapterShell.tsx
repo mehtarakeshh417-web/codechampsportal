@@ -37,10 +37,11 @@ interface Props {
   next?: TopicMeta;
   isCompleted: boolean;
   onMarkComplete: () => void;
+  canComplete?: boolean;
 }
 
 export default function ChapterShell({
-  topic, classMeta, prev, next, isCompleted, onMarkComplete,
+  topic, classMeta, prev, next, isCompleted, onMarkComplete, canComplete = true,
 }: Props) {
   const navigate = useNavigate();
   const [bundle, setBundle] = useState<Required<TopicContentBundle> | null>(null);
@@ -287,6 +288,7 @@ export default function ChapterShell({
                 next,
                 isCompleted,
                 onMarkComplete,
+                canComplete,
                 learnSeen,
                 learnPagesTotal,
                 onTryInLab: goToLab,
@@ -399,6 +401,7 @@ function renderPage(
     next?: TopicMeta;
     isCompleted: boolean;
     onMarkComplete: () => void;
+    canComplete: boolean;
     learnSeen: number;
     learnPagesTotal: number;
     onTryInLab: () => void;
@@ -521,6 +524,7 @@ function renderPage(
           next={ctx.next}
           isCompleted={ctx.isCompleted}
           onComplete={ctx.onMarkComplete}
+          canComplete={ctx.canComplete}
         />
       );
   }
