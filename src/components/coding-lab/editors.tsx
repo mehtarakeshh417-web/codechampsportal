@@ -7,7 +7,9 @@ import SimulatedKritaEditor from "./SimulatedKritaEditor";
 import SimulatedWordEditor from "./SimulatedWordEditor";
 import SimulatedExcelEditor from "./SimulatedExcelEditor";
 import SimulatedPowerPointEditor from "./SimulatedPowerPointEditor";
-import OfficeLiveEditor from "./OfficeLiveEditor";
+import WordPro from "./WordPro";
+import ExcelPro from "./ExcelPro";
+import PowerPointPro from "./PowerPointPro";
 
 // Helper to download a blob
 const downloadFile = (content: string, filename: string, mimeType: string) => {
@@ -165,24 +167,24 @@ export const MsPaintEditor = () => (
   </EditorWrapper>
 );
 
-// MS Word — real Microsoft Word Online (shared doc via connector)
+// MS Word — free TinyMCE-based Word lookalike (no login, fully local)
 export const MsWordEditor = () => (
-  <EditorWrapper title="MS Word (Online)">
-    <OfficeLiveEditor kind="word" label="Word" />
+  <EditorWrapper title="MS Word">
+    <WordPro />
   </EditorWrapper>
 );
 
-// MS Excel — real Microsoft Excel Online (shared doc via connector)
+// MS Excel — free FortuneSheet-based Excel lookalike (no login, fully local)
 export const MsExcelEditor = () => (
-  <EditorWrapper title="MS Excel (Online)">
-    <OfficeLiveEditor kind="excel" label="Excel" />
+  <EditorWrapper title="MS Excel">
+    <ExcelPro />
   </EditorWrapper>
 );
 
-// MS PowerPoint — real Microsoft PowerPoint Online (shared doc via connector)
+// MS PowerPoint — free Fabric.js-based PowerPoint lookalike (no login, fully local)
 export const MsPowerPointEditor = () => (
-  <EditorWrapper title="MS PowerPoint (Online)">
-    <OfficeLiveEditor kind="powerpoint" label="PowerPoint" />
+  <EditorWrapper title="MS PowerPoint">
+    <PowerPointPro />
   </EditorWrapper>
 );
 
