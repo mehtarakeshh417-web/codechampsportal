@@ -120,6 +120,9 @@ const StudentDashboard = () => {
         <p className="text-white/80 font-body font-bold text-sm">{user?.className} {student?.section && `· Section ${student.section}`}</p>
       </motion.div>
 
+      {/* Streak + Trophy shelf */}
+      <StreakBadgesBar streak={g.streakDays} xp={xp} coins={g.coins} badges={g.badges} />
+
       {/* XP Level Card */}
       <motion.div 
         initial={{ y: 20, opacity: 0 }} 
