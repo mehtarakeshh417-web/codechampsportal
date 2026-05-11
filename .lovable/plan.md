@@ -1,85 +1,46 @@
+# Replace Office Editors with Real Office Online (Shared Doc Mode)
+
 ## Goal
-Transform the existing curriculum topic experience into a premium **multi-page interactive chapter** with **inline images**, **colorful learning blocks**, and **chapter-style navigation**, applied uniformly across **all classes and topics** — without rewriting the 50+ existing content modules.
+In the Coding Lab, swap the three simulated editors (`MsWordEditor`, `MsExcelEditor`, `MsPowerPointEditor`) for **real Microsoft Office Online editors** loaded inside an iframe. Each editor uses one blank document hosted in your connected OneDrive. All students who open the editor will edit the *same shared document* (chosen trade-off).
 
-## Strategy
-Instead of regenerating content for every topic (which previously caused timeouts and incomplete files), I'll **refactor the topic renderer** to *derive* a multi-page chapter from each topic's existing `TopicContentBundle`. This instantly upgrades every topic and keeps the architecture lazy/scalable.
+We will **not** touch:
+- The Pro editors (`word2`, `excel2`, `ppt2`) — kept as offline alternatives.
+- Curriculum, lessons, dashboards, or any other lab editor.
 
-## What changes
+## How it will work
 
-### 1. New "Chapter" experience (replaces tab-based topic page)
-A topic becomes a sequence of **pages**:
-```text
-Page 1  Overview / Hook (summary + objectives + cover visual)
-Page 2…N  Learn pages — ONE per learn block, with the matching image
-          embedded inline (no more separate Images tab)
-Page N+1  Activity Time (interactive activity cards)
-Page N+2  Practice
-Page N+3  Chapter Quiz
-Page N+4  Recap + Next Topic CTA
-+ optional Lab page (if topic has a lab)
-```
-Each page is rendered on demand; only the active page mounts.
+1. A new edge function (`office-embed-url`) ensures three blank files exist in your OneDrive (`/CodeChamps/blank.docx`, `/blank.xlsx`, `/blank.pptx`):
+   - On first call per file, it creates the file via `PUT /me/drive/root:/CodeChamps/{name}:/content` with an empty Office document body.
+   - It then calls `POST /me/drive/items/{id}/createLink` with `{ type: "edit", scope: "anonymous" }` to get a shareable edit link.
+   - Returns the embed URL (`webUrl` with `action=embedview` / `?em=2`).
+   - Caches file IDs and links in a small Supabase table `office_embed_links` so subsequent calls are instant.
 
-### 2. Navigation
-- **Sticky chapter header**: title, page X/Y, progress bar
-- **Prev / Next buttons** at page bottom
-- **Chapter sidebar** (desktop): clickable list of pages within the topic
-- **Sibling-topic dropdown** kept in header for jumping topics
-- **Breadcrumbs** retained
-- Page index synced to URL hash (`#p=3`) so refresh / share works
-- Auto scroll-to-top on page change
+2. Three new editor components (`OfficeWordEditor`, `OfficeExcelEditor`, `OfficePowerPointEditor`) replace the simulated ones in `src/components/coding-lab/editors.tsx`:
+   - On mount, call the edge function for the corresponding `kind` (`word`/`excel`/`powerpoint`).
+   - Render the returned URL in an iframe (full-height, fullscreen toggle preserved).
+   - Show a clear notice banner: "This is a shared practice document — everyone in the class edits together."
 
-### 3. Inline images (kills the "Images" tab)
-- The Images tab is removed from navigation.
-- Each `learn.block` is paired with the next available `images.items[i]` and rendered **inline** (image card with caption + soft gradient background) right under the block.
-- Any leftover images appear on a "Visual Recap" mini-page so nothing is lost.
+3. The exports `MsWordEditor`, `MsExcelEditor`, `MsPowerPointEditor` are repointed to the new components, so `StudentCodingLab` and `TeacherCodingLab` pick them up automatically — no tab/menu changes needed.
 
-### 4. Colorful, premium styling (works for ALL existing content)
-Reusable **content blocks** with class-aware theming:
-- Concept card (gradient header per class, large emoji)
-- "💡 Did You Know?" callout
-- "⚠️ Important" callout
-- "🎨 Activity Time" card
-- "🧠 Quick Recall" mini-quiz card
-- "🚀 Challenge" card
-- Numbered objective chips
-- Bullet lists styled as check-rows
-Lower classes (1–4) get playful gradients + larger type; classes 5–10 get cleaner, professional gradients. Class gradient is pulled from existing `ClassMeta.gradient`.
+## Files to create
 
-### 5. Interactive elements
-- Expandable "Read more" on long blocks
-- Flip/reveal cards for fun-fact bullets
-- Lightbox (click to zoom) on inline images
-- Smooth page transitions via framer-motion (already used)
-
-### 6. Programming topics
-When a learn block contains code-like content (detected by triple-backtick or `lab.starterCode` present), render a syntax-highlighted code card with a **"Try in Lab"** button that jumps to the Lab page.
-
-### 7. Performance
-- Each chapter page is its own component; only the active page is mounted.
-- Lab editor stays lazy-loaded (existing).
-- Content modules stay glob-imported lazily (existing `contentLoader`).
-- No bulk fetch — derived chapter pages are built from already-loaded bundle, no extra network.
-
-## Files to add
-- `src/components/curriculum/chapter/ChapterShell.tsx` — header, sidebar, progress, prev/next
-- `src/components/curriculum/chapter/buildChapterPages.ts` — derives pages from `TopicContentBundle`
-- `src/components/curriculum/chapter/pages/OverviewPage.tsx`
-- `src/components/curriculum/chapter/pages/LearnPage.tsx` (block + inline image + callouts)
-- `src/components/curriculum/chapter/pages/ActivitiesPage.tsx`
-- `src/components/curriculum/chapter/pages/PracticePage.tsx`
-- `src/components/curriculum/chapter/pages/QuizPage.tsx`
-- `src/components/curriculum/chapter/pages/LabPageWrapper.tsx`
-- `src/components/curriculum/chapter/pages/RecapPage.tsx`
-- `src/components/curriculum/chapter/blocks/Callout.tsx`, `ImageCard.tsx`, `CodeCard.tsx`
+- `supabase/functions/office-embed-url/index.ts` — Deno function. Inputs: `{ kind: "word" | "excel" | "powerpoint" }`. Auth via `LOVABLE_API_KEY` + the matching connector key (`MICROSOFT_WORD_API_KEY`, etc.) through `https://connector-gateway.lovable.dev/microsoft_word|excel|powerpoint`. Output: `{ embedUrl }`.
+- Migration: table `public.office_embed_links (kind text primary key, item_id text, embed_url text, updated_at timestamptz)` with RLS allowing service-role only (function uses service role).
+- `src/components/coding-lab/OfficeLiveEditor.tsx` — generic component that takes `kind`, fetches URL, shows iframe + notice + reload + fullscreen.
 
 ## Files to modify
-- `src/components/curriculum/TopicPage.tsx` — replace tab system with `ChapterShell`. Keep route, completion tracking, and sibling sidebar.
-- `src/components/curriculum/Tabs.tsx` — kept (PracticeTab/QuizTab still reused internally), `ImagesTab` no longer in nav.
-- `src/lib/curriculum/types.ts` — small additive optional fields (none required; backward-compatible).
 
-## Files NOT touched
-- Routing, dashboard, registry, `contentLoader`, all 50+ content `.ts` files, lab editors, database schema.
+- `src/components/coding-lab/editors.tsx` — replace bodies of `MsWordEditor`, `MsExcelEditor`, `MsPowerPointEditor` to render `<OfficeLiveEditor kind="word|excel|powerpoint" />`. Keep `EditorWrapper` for fullscreen.
+- `supabase/config.toml` — register the new function (public, no JWT verification needed since it doesn't touch user data; rate-limited by being read-only of cached link).
 
-## Outcome
-Every existing topic — Class 1 through 8 — instantly becomes a colorful, multi-page, navigatable chapter with inline images, callouts, activities, practice, quiz, and (where applicable) a coding lab — without touching any topic's content file.
+## Technical notes / risks
+
+- **Anonymous edit link availability**: requires the OneDrive plan to allow anonymous sharing links. If your tenant blocks anonymous links, the function will fall back to `scope: "organization"` which won't embed without sign-in — we'll surface a clear error and suggest enabling anonymous sharing in OneDrive admin.
+- **Embed URL format**: We'll prefer the `webUrl` returned by `createLink` and append `?action=embedview` (or use the `embedHtml` returned by `?$select=embedHtml` when available) so the iframe renders the editor, not just a viewer.
+- **Blank file bytes**: We'll ship three minimal valid OOXML blank files as base64 constants in the function (a 4KB blank docx/xlsx/pptx each).
+- **Shared editing caveat**: The notice banner is critical so students/teachers understand it's not a private sandbox.
+
+## Out of scope
+- Per-student private documents (would require per-user Microsoft sign-in — not possible with these connectors).
+- Saving to a student's personal account.
+- Changing the curriculum lab linking.
