@@ -27,8 +27,6 @@ import { useGameState } from "@/hooks/useGameState";
 import { sounds } from "../enhancements/soundManager";
 import XPCoinHUD from "../enhancements/XPCoinHUD";
 import ChapterToolbar from "../enhancements/ChapterToolbar";
-import { useAuth } from "@/contexts/AuthContext";
-import { useData } from "@/contexts/DataContext";
 
 const LabPanel = lazy(() => import("../LabPanel"));
 
