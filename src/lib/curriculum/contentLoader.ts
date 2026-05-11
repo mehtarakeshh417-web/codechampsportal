@@ -140,16 +140,89 @@ const placeholderFor = (section: TabKey, topicId: string): NonNullable<TopicCont
 };
 
 /**
+ * Build "deep dive" extra learn blocks so every topic has more theory,
+ * even when the per-topic content file is short. These are appended
+ * after the topic's own learn blocks (or replace them entirely if the
+ * topic has no content file yet).
+ */
+const buildDeepDiveBlocks = (topicId: string) => {
+  const topic = getTopicById(topicId);
+  const title = topic?.title ?? "this topic";
+  const isJunior = (topic?.classNumber ?? 5) <= 4;
+
+  return [
+    {
+      heading: `🔍 Going Deeper into ${title}`,
+      body:
+        `Now that we know the basics of ${title}, let us look a little closer. ` +
+        `In computers and technology, almost every idea is built from smaller ideas put together. ` +
+        `Understanding ${title} step by step makes it much easier to remember — and a lot more fun! ` +
+        `Try to picture each part in your head as you read.`,
+      bullets: [
+        `${title} is used in everyday life more than most people realise.`,
+        `Like all computer ideas, it follows clear rules — once you learn the rules, you can predict what will happen.`,
+        `It connects with other topics you already know, making your learning grow like a tree 🌱.`,
+        `Practising small examples is the fastest way to master ${title}.`,
+      ],
+    },
+    {
+      heading: `💡 Why ${title} Matters`,
+      body: isJunior
+        ? `${title} is something you will use again and again as you grow. From playing games to making art, this idea pops up everywhere! ` +
+          `When you understand ${title}, computers feel less like magic and more like a clever friend that listens to you.`
+        : `In real-world software and projects, ${title} is one of the building blocks that engineers reach for every single day. ` +
+          `Strong understanding here will help you when you study more advanced subjects like programming, data, design and AI.`,
+      bullets: [
+        `Used in schools, offices and homes across the world.`,
+        `Helps you solve real problems faster and more accurately.`,
+        `Builds the foundation for ${isJunior ? "fun coding projects" : "advanced topics like algorithms, databases and AI"}.`,
+      ],
+    },
+    {
+      heading: `🧭 Tips to Remember ${title}`,
+      body:
+        `Here are some friendly tricks to help ${title} stick in your mind. ` +
+        `Try them while reading and during the practice section.`,
+      bullets: [
+        `Say each new word out loud — it helps your brain remember.`,
+        `Draw a small picture or flowchart of what you just learned.`,
+        `Teach it to a friend or family member in your own words.`,
+        `Try the practice and quiz pages — getting things wrong is part of learning!`,
+      ],
+    },
+  ];
+};
+
+const richImagesForTopic = (topicId: string): ImagesContent => {
+  const topic = getTopicById(topicId);
+  const emoji = topic?.emoji ?? "💻";
+  return {
+    items: [
+      { emoji, caption: `${topic?.title ?? "Lesson"} in action.` },
+      { emoji: "🧠", caption: "Think it through — your brain is the best computer!" },
+      { emoji: "👀", caption: "Look closely — small details matter." },
+      { emoji: "🚀", caption: "Practice makes you faster and more confident." },
+    ],
+  };
+};
+
+/**
  * Load the entire topic bundle (used by the multi-page chapter view).
  * Sections that are missing fall back to placeholders so the UI is always
- * fully populated.
+ * fully populated. Every bundle is also enriched with "deep dive" blocks
+ * and extra images so the theory section never feels too short.
  */
 export async function loadTopicBundle(topicId: string): Promise<Required<TopicContentBundle>> {
   const bundle = await loadBundle(topicId);
+  const baseLearn   = (bundle.learn      ?? placeholderLearn(topicId))      as LearnContent;
+  const baseImages  = (bundle.images     ?? placeholderImages())             as ImagesContent;
+  const extraBlocks = buildDeepDiveBlocks(topicId);
+  const extraImages = richImagesForTopic(topicId).items;
+
   return {
     overview:   (bundle.overview   ?? placeholderOverview(topicId))   as OverviewContent,
-    learn:      (bundle.learn      ?? placeholderLearn(topicId))      as LearnContent,
-    images:     (bundle.images     ?? placeholderImages())             as ImagesContent,
+    learn:      { blocks: [...baseLearn.blocks, ...extraBlocks] }      as LearnContent,
+    images:     { items: [...baseImages.items, ...extraImages] }       as ImagesContent,
     activities: (bundle.activities ?? placeholderActivities(topicId)) as ActivitiesContent,
     practice:   (bundle.practice   ?? placeholderPractice())           as PracticeContent,
     quiz:       (bundle.quiz       ?? placeholderQuiz())               as QuizContent,
