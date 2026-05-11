@@ -14,7 +14,7 @@ import {
   getTopicsForClass,
   detectClassNumber,
 } from "@/lib/curriculum/registry";
-import { useLocalGameState } from "./enhancements/useLocalGameState";
+import { useGameState, xpProgressInLevel } from "@/hooks/useGameState";
 import StreakBadgesBar from "./enhancements/StreakBadgesBar";
 
 const CurriculumDashboard = () => {
@@ -24,8 +24,9 @@ const CurriculumDashboard = () => {
   const { classSlug } = useParams<{ classSlug?: string }>();
 
   const student = useMemo(() => students.find((s) => s.user_id === user?.id), [students, user?.id]);
-  const { state: g, touchStreak } = useLocalGameState(student?.id);
+  const { state: g, touchStreak } = useGameState();
   useEffect(() => { touchStreak(); }, [touchStreak]);
+  const lvl = xpProgressInLevel(g.xp);
   const studentClassNumber = useMemo(
     () => detectClassNumber(student?.class || user?.className || ""),
     [student?.class, user?.className]
