@@ -72,6 +72,7 @@ const TopicPage = () => {
       setIsCompleted(true);
       toast.success("Chapter completed! +50 XP 🎉");
     }
+    window.dispatchEvent(new CustomEvent("topic-completion-changed"));
     await refreshData();
   }, [student, topic, isCompleted, refreshData]);
 
@@ -159,6 +160,7 @@ const TopicPage = () => {
           next={next}
           isCompleted={isCompleted}
           onMarkComplete={toggleComplete}
+          canComplete={user?.role === "student"}
         />
       </div>
     </div>

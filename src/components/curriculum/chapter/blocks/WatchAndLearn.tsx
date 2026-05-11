@@ -19,9 +19,11 @@ interface Props {
 export default function WatchAndLearn({
   topicId, topicTitle, topicEmoji, classNumber, gradient,
 }: Props) {
-  const curated = getCuratedVideo(topicId);
+  const curatedRaw = getCuratedVideo(topicId);
   const [playing, setPlaying] = useState(false);
   const [inView, setInView] = useState(false);
+  // Runtime availability — null = checking, true/false = result
+  const [available, setAvailable] = useState<boolean | null>(curatedRaw ? null : false);
   const ref = useRef<HTMLDivElement | null>(null);
 
   // Reveal animation when scrolled into view
@@ -35,6 +37,19 @@ export default function WatchAndLearn({
     return () => obs.disconnect();
   }, []);
 
+  // Verify the video is still embeddable (handles videos taken down / made private).
+  useEffect(() => {
+    if (!curatedRaw) return;
+    let cancelled = false;
+    fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${curatedRaw.videoId}`)
+      .then((r) => r.json())
+      .then((j) => { if (!cancelled) setAvailable(!j?.error); })
+      .catch(() => { if (!cancelled) setAvailable(false); });
+    return () => { cancelled = true; };
+  }, [curatedRaw?.videoId]);
+
+  // Treat as "no curated" if unavailable
+  const curated = available === false ? undefined : curatedRaw;
   const searchUrl = youtubeSearchUrl(topicTitle, classNumber);
   const thumb = curated
     ? `https://i.ytimg.com/vi/${curated.videoId}/hqdefault.jpg`
