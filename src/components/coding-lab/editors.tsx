@@ -7,6 +7,7 @@ import SimulatedKritaEditor from "./SimulatedKritaEditor";
 import SimulatedWordEditor from "./SimulatedWordEditor";
 import SimulatedExcelEditor from "./SimulatedExcelEditor";
 import SimulatedPowerPointEditor from "./SimulatedPowerPointEditor";
+import OfficeLiveEditor from "./OfficeLiveEditor";
 
 // Helper to download a blob
 const downloadFile = (content: string, filename: string, mimeType: string) => {
@@ -164,24 +165,24 @@ export const MsPaintEditor = () => (
   </EditorWrapper>
 );
 
-// MS Word Editor - no-login interactive editor
+// MS Word — real Microsoft Word Online (shared doc via connector)
 export const MsWordEditor = () => (
-  <EditorWrapper title="MS Word Editor">
-    <SimulatedWordEditor />
+  <EditorWrapper title="MS Word (Online)">
+    <OfficeLiveEditor kind="word" label="Word" />
   </EditorWrapper>
 );
 
-// MS Excel Editor - no-login interactive editor
+// MS Excel — real Microsoft Excel Online (shared doc via connector)
 export const MsExcelEditor = () => (
-  <EditorWrapper title="MS Excel Editor">
-    <SimulatedExcelEditor />
+  <EditorWrapper title="MS Excel (Online)">
+    <OfficeLiveEditor kind="excel" label="Excel" />
   </EditorWrapper>
 );
 
-// MS PowerPoint Editor - no-login interactive editor
+// MS PowerPoint — real Microsoft PowerPoint Online (shared doc via connector)
 export const MsPowerPointEditor = () => (
-  <EditorWrapper title="MS PowerPoint Editor">
-    <SimulatedPowerPointEditor />
+  <EditorWrapper title="MS PowerPoint (Online)">
+    <OfficeLiveEditor kind="powerpoint" label="PowerPoint" />
   </EditorWrapper>
 );
 

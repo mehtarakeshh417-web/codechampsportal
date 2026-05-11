@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.generate-topic-content]
 verify_jwt = false
+
+[functions.office-embed-url]
+verify_jwt = false
