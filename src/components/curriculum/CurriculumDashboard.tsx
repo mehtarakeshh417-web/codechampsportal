@@ -1,7 +1,7 @@
 // Curriculum dashboard: Class 1..10 accordion, with each class showing
 // only its lightweight topic list (titles + emojis). No content fetched here.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronRight, CheckCircle2, Circle, Sparkles } from "lucide-react";
@@ -22,6 +22,7 @@ const CurriculumDashboard = () => {
   const { students } = useData();
   const navigate = useNavigate();
   const { classSlug } = useParams<{ classSlug?: string }>();
+  const isStudent = user?.role === "student";
 
   const student = useMemo(() => students.find((s) => s.user_id === user?.id), [students, user?.id]);
   const { state: g, touchStreak } = useGameState();
@@ -32,14 +33,23 @@ const CurriculumDashboard = () => {
     [student?.class, user?.className]
   );
 
+  // Students see ONLY their own class. Teachers/principals/admins see all.
+  const visibleClasses = useMemo(() => {
+    if (isStudent && studentClassNumber) {
+      const own = ALL_CLASSES.find((c) => c.classNumber === studentClassNumber);
+      return own ? [own] : ALL_CLASSES;
+    }
+    return ALL_CLASSES;
+  }, [isStudent, studentClassNumber]);
+
   // Default-expanded class:
   //   /dashboard/curriculum/class-3 → 3
   //   else student's own class
-  //   else first class
+  //   else first visible class
   const initialOpen =
     (classSlug && Number(classSlug.replace("class-", ""))) ||
     studentClassNumber ||
-    ALL_CLASSES[0].classNumber;
+    visibleClasses[0].classNumber;
 
   const [openClass, setOpenClass] = useState<number | null>(initialOpen);
 
@@ -52,7 +62,7 @@ const CurriculumDashboard = () => {
 
   const [completed, setCompleted] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
+  const refetchCompletions = useCallback(() => {
     if (!student) return;
     supabase
       .from("topic_completions")
@@ -63,9 +73,22 @@ const CurriculumDashboard = () => {
       });
   }, [student]);
 
+  useEffect(() => { refetchCompletions(); }, [refetchCompletions]);
+
+  // Refetch when window regains focus (e.g. after marking a topic complete)
+  useEffect(() => {
+    const onFocus = () => refetchCompletions();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [refetchCompletions]);
+
   const totalTopics = useMemo(
-    () => ALL_CLASSES.reduce((sum, c) => sum + getTopicsForClass(c.classNumber).length, 0),
-    [],
+    () => visibleClasses.reduce((sum, c) => sum + getTopicsForClass(c.classNumber).length, 0),
+    [visibleClasses],
   );
   const totalDone = completed.size;
   const dailyQuestDone = !!g.lastVisitISO && g.lastVisitISO === new Date().toISOString().slice(0, 10);
@@ -119,7 +142,7 @@ const CurriculumDashboard = () => {
       <StreakBadgesBar streak={g.streakDays} xp={g.xp} coins={g.coins} badges={g.badges} />
 
       <div className="space-y-3">
-        {ALL_CLASSES.map((cls, ci) => {
+        {visibleClasses.map((cls, ci) => {
           const isOpen = openClass === cls.classNumber;
           const topics = getTopicsForClass(cls.classNumber);
           const doneCount = topics.filter((t) => completed.has(t.id)).length;
