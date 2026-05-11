@@ -23,12 +23,10 @@ import RecapPage from "./pages/RecapPage";
 import QuizEngine from "../QuizEngine";
 import WatchAndLearn from "./blocks/WatchAndLearn";
 import CelebrationOverlay from "./CelebrationOverlay";
-import { useLocalGameState } from "../enhancements/useLocalGameState";
+import { useGameState } from "@/hooks/useGameState";
 import { sounds } from "../enhancements/soundManager";
 import XPCoinHUD from "../enhancements/XPCoinHUD";
 import ChapterToolbar from "../enhancements/ChapterToolbar";
-import { useAuth } from "@/contexts/AuthContext";
-import { useData } from "@/contexts/DataContext";
 
 const LabPanel = lazy(() => import("../LabPanel"));
 
@@ -54,11 +52,8 @@ export default function ChapterShell({
   const wasCompletedRef = useRef(isCompleted);
   const lastPageRef = useRef(0);
 
-  // Kid-mode game state
-  const { user } = useAuth();
-  const { students } = useData();
-  const studentId = students.find((s) => s.user_id === user?.id)?.id;
-  const { state: g, update, addXP, earnBadge, touchStreak } = useLocalGameState(studentId);
+  // Kid-mode game state (cloud-synced XP)
+  const { state: g, update, addXP, earnBadge, touchStreak } = useGameState();
   useEffect(() => { touchStreak(); }, [touchStreak]);
 
   // Trigger celebration when isCompleted flips from false → true

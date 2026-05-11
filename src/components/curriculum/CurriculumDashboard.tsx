@@ -14,7 +14,7 @@ import {
   getTopicsForClass,
   detectClassNumber,
 } from "@/lib/curriculum/registry";
-import { useLocalGameState } from "./enhancements/useLocalGameState";
+import { useGameState, xpProgressInLevel } from "@/hooks/useGameState";
 import StreakBadgesBar from "./enhancements/StreakBadgesBar";
 
 const CurriculumDashboard = () => {
@@ -24,8 +24,9 @@ const CurriculumDashboard = () => {
   const { classSlug } = useParams<{ classSlug?: string }>();
 
   const student = useMemo(() => students.find((s) => s.user_id === user?.id), [students, user?.id]);
-  const { state: g, touchStreak } = useLocalGameState(student?.id);
+  const { state: g, touchStreak } = useGameState();
   useEffect(() => { touchStreak(); }, [touchStreak]);
+  const lvl = xpProgressInLevel(g.xp);
   const studentClassNumber = useMemo(
     () => detectClassNumber(student?.class || user?.className || ""),
     [student?.class, user?.className]
@@ -62,20 +63,58 @@ const CurriculumDashboard = () => {
       });
   }, [student]);
 
+  const totalTopics = useMemo(
+    () => ALL_CLASSES.reduce((sum, c) => sum + getTopicsForClass(c.classNumber).length, 0),
+    [],
+  );
+  const totalDone = completed.size;
+  const dailyQuestDone = !!g.lastVisitISO && g.lastVisitISO === new Date().toISOString().slice(0, 10);
+
   return (
     <div>
       <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="w-5 h-5 text-primary" />
           <span className="text-xs uppercase tracking-wider text-foreground/40">Curriculum</span>
+          <span className="ml-auto px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-gradient-to-r from-cyan-400/20 to-violet-500/20 border border-cyan-400/30 text-cyan-200">
+            ⭐ Lv {lvl.level} · {g.xp} XP
+          </span>
         </div>
         <h1 className="font-display text-3xl font-bold mb-1 text-foreground">
           <span className="text-gradient-brand">Learning Library</span>
         </h1>
-        <p className="text-foreground/55 font-body mb-7">
+        <p className="text-foreground/55 font-body mb-3">
           Pick a class to see its topics. Click a topic to start learning.
         </p>
+        <div className="mb-5 h-2 rounded-full bg-white/10 overflow-hidden">
+          <motion.div
+            className="h-full bg-gradient-to-r from-cyan-400 to-violet-500"
+            animate={{ width: `${lvl.pct}%` }}
+            transition={{ duration: 0.6 }}
+          />
+        </div>
       </motion.div>
+
+      {/* Daily quest banner */}
+      <div className={cn(
+        "glass-card p-3 mb-4 flex items-center gap-3 border",
+        dailyQuestDone ? "border-emerald-400/30 bg-emerald-400/5" : "border-amber-400/30 bg-amber-400/5",
+      )}>
+        <span className="text-2xl">{dailyQuestDone ? "✅" : "🎯"}</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-foreground">
+            {dailyQuestDone ? "Daily quest done!" : "Today's quest"}
+          </div>
+          <div className="text-xs text-foreground/60">
+            {dailyQuestDone
+              ? `Keep your ${g.streakDays}-day streak alive — come back tomorrow for more XP.`
+              : "Open any chapter today to earn +5 XP and grow your streak."}
+          </div>
+        </div>
+        <span className="hidden sm:inline text-[11px] text-foreground/50">
+          {totalDone}/{totalTopics} topics
+        </span>
+      </div>
 
       <StreakBadgesBar streak={g.streakDays} xp={g.xp} coins={g.coins} badges={g.badges} />
 
@@ -191,6 +230,14 @@ const CurriculumDashboard = () => {
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-semibold text-foreground truncate">{t.title}</div>
                               <div className="text-[11px] text-foreground/45 truncate">{t.shortDescription}</div>
+                              <div className="mt-0.5 flex items-center gap-1 text-[10px]">
+                                <span className="text-amber-300/90 tracking-tight">
+                                  {done ? "★★★" : "☆☆☆"}
+                                </span>
+                                <span className={cn("font-bold", done ? "text-emerald-300" : "text-cyan-300/80")}>
+                                  {done ? "+80 XP earned" : "+80 XP available"}
+                                </span>
+                              </div>
                             </div>
                             {done
                               ? <CheckCircle2 className="w-4 h-4 text-neon-green shrink-0" />
