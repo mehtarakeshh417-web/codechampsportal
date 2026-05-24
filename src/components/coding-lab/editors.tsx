@@ -9,6 +9,7 @@ import SimulatedExcelEditor from "./SimulatedExcelEditor";
 import SimulatedPowerPointEditor from "./SimulatedPowerPointEditor";
 import WordPro from "./WordPro";
 import ExcelPro from "./ExcelPro";
+import OnlyOfficeExcel from "./OnlyOfficeExcel";
 import PowerPointPro from "./PowerPointPro";
 
 // Helper to download a blob
