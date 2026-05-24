@@ -58,7 +58,7 @@ const getNotificationRoute = (type: string, role: string): string | null => {
     case "assignment_graded":
       return `/dashboard/assignments`;
     case "announcement":
-      return `/dashboard/announcements`;
+      return role === "student" ? `/dashboard` : `/dashboard/announcements`;
     case "discussion":
     case "discussion_reply":
       return `/dashboard/discussions`;
