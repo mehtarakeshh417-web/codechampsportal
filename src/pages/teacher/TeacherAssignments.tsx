@@ -213,7 +213,7 @@ const TeacherAssignments = () => {
       user_id: s.user_id!,
       title: "📝 New Assignment from " + teacherName,
       message: `${teacherName} has assigned "${form.title}" (${form.subject}) to your class. It has ${questions.length} question(s)${form.dueDate ? ` and is due by ${new Date(form.dueDate).toLocaleDateString()}` : ""}. Good luck!`,
-      type: "project_assigned",
+      type: "assignment_assigned",
     }));
     if (notifInserts.length > 0) {
       await supabase.from("notifications").insert(notifInserts as any);

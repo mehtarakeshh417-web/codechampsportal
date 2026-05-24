@@ -154,7 +154,7 @@ const StudentAssignments = () => {
         user_id: assignmentTeacherUserId,
         title: `📋 ${student.name} submitted an assignment`,
         message: `${student.name} (${student.class}-${student.section}) has submitted "${assignment.title}" and scored ${score}% (${correct}/${assignment.questions.length} correct).`,
-        type: "project_submitted",
+        type: "assignment_submitted",
       } as any);
     }
 
