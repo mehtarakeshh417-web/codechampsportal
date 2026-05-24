@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Code, ChevronDown, ChevronRight, Clock, CheckCircle2, Send, Loader2 } from "lucide-react";
+import { FileText, ChevronDown, ChevronRight, Clock, CheckCircle2, Send, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,17 +27,6 @@ interface Assignment {
   teacherName: string;
 }
 
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  targetClass: string;
-  technology: string;
-  submissionType: string;
-  dueDate: string;
-  createdAt: string;
-}
-
 interface Submission {
   assignmentId: string;
   studentId: string;
@@ -55,25 +43,20 @@ const StudentAssignments = () => {
   const student = students.find((s) => s.user_id === user?.id || s.id === user?.id);
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [projSubmissions, setProjSubmissions] = useState<Record<string, string>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [projNote, setProjNote] = useState("");
 
   const fetchData = useCallback(async () => {
     if (!student) { setLoading(false); return; }
     setLoading(true);
 
     try {
-      const [aRes, pRes, subRes, projSubRes] = await Promise.all([
+      const [aRes, subRes] = await Promise.all([
         supabase.from("assignments").select("*, teachers(first_name, last_name)").eq("status", "active"),
-        supabase.from("projects").select("*"),
         supabase.from("submissions").select("*").eq("student_id", student.id),
-        supabase.from("project_submissions" as any).select("*").eq("student_id", student.id),
       ]);
 
       if (aRes.data) {
@@ -85,15 +68,6 @@ const StudentAssignments = () => {
         })));
       } else { setAssignments([]); }
 
-      if (pRes.data) {
-        setProjects(pRes.data.map((p: any) => ({
-          id: p.id, title: p.title, description: p.description,
-          targetClass: p.target_class, technology: p.technology,
-          submissionType: p.submission_type || "Screenshot",
-          dueDate: p.due_date || "", createdAt: p.created_at,
-        })));
-      } else { setProjects([]); }
-
       if (subRes.data) {
         setSubmissions(subRes.data.map((s: any) => ({
           assignmentId: s.assignment_id, studentId: s.student_id,
@@ -102,16 +76,10 @@ const StudentAssignments = () => {
         })));
       }
 
-      if (projSubRes.data) {
-        const map: Record<string, string> = {};
-        (projSubRes.data as any[]).forEach((ps: any) => { map[ps.project_id] = ps.notes; });
-        setProjSubmissions(map);
-      }
     } catch (err) {
       console.error("Failed to load assignments:", err);
       toast.error("Failed to load assignments. Please refresh.");
       setAssignments([]);
-      setProjects([]);
     }
 
     setLoading(false);
