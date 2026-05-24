@@ -9,6 +9,7 @@ import SimulatedExcelEditor from "./SimulatedExcelEditor";
 import SimulatedPowerPointEditor from "./SimulatedPowerPointEditor";
 import WordPro from "./WordPro";
 import ExcelPro from "./ExcelPro";
+import OnlyOfficeExcel from "./OnlyOfficeExcel";
 import PowerPointPro from "./PowerPointPro";
 
 // Helper to download a blob
@@ -174,10 +175,10 @@ export const MsWordEditor = () => (
   </EditorWrapper>
 );
 
-// MS Excel — free FortuneSheet-based Excel lookalike (no login, fully local)
+// MS Excel — real OnlyOffice spreadsheet editor (shared class workbook)
 export const MsExcelEditor = () => (
   <EditorWrapper title="MS Excel">
-    <ExcelPro />
+    <OnlyOfficeExcel />
   </EditorWrapper>
 );
 
