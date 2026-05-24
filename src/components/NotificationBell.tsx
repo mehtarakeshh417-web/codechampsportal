@@ -36,17 +36,19 @@ const typeColors: Record<string, string> = {
 };
 
 const getNotificationRoute = (type: string, role: string): string | null => {
-  const prefix = role === "teacher" ? "/teacher" : role === "school" ? "/school" : "/student";
   switch (type) {
     case "project_assigned":
     case "project_submitted":
     case "project_graded":
     case "feedback_received":
-      return `${prefix}/projects`;
+      return `/dashboard/projects`;
     case "assignment":
-      return `${prefix}/assignments`;
+      return `/dashboard/assignments`;
     case "announcement":
-      return role === "school" ? "/school/announcements" : `${prefix}/dashboard`;
+      return role === "school" || role === "teacher" ? "/dashboard/announcements" : `/dashboard`;
+    case "discussion":
+    case "discussion_reply":
+      return `/dashboard/discussions`;
     default:
       return null;
   }
