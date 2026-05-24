@@ -10,11 +10,11 @@ import { toast } from "sonner";
 import ExpandableTeacherCard from "@/components/ExpandableTeacherCard";
 
 const CLASS_LIST = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
-const SECTION_LIST = ["A", "B", "C", "D", "E"];
+const DEFAULT_SECTION_LIST = ["A", "B", "C", "D", "E"];
 
 const SchoolTeachers = () => {
   const { user } = useAuth();
-  const { addTeacher, getSchoolTeachers, getSchoolStudents, deleteTeacher, updateTeacher } = useData();
+  const { addTeacher, getSchoolTeachers, getSchoolStudents, deleteTeacher, updateTeacher, getSchool } = useData();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ firstName: "", lastName: "", classes: [] as string[] });
@@ -25,11 +25,13 @@ const SchoolTeachers = () => {
   const schoolId = user?.id || "";
   const teachers = getSchoolTeachers(schoolId);
   const schoolStudents = getSchoolStudents(schoolId);
+  const school = getSchool(schoolId);
+  const SECTION_LIST = school?.sections?.length ? school.sections : DEFAULT_SECTION_LIST;
 
   const toggleClassSelection = (cls: string) => {
     setSelectedClasses((prev) => {
       const updated = { ...prev };
-      if (updated[cls]) {delete updated[cls];} else {updated[cls] = ["A"];}
+      if (updated[cls]) {delete updated[cls];} else {updated[cls] = SECTION_LIST[0] ? [SECTION_LIST[0]] : [];}
       return updated;
     });
   };
