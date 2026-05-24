@@ -175,10 +175,10 @@ export const MsWordEditor = () => (
   </EditorWrapper>
 );
 
-// MS Excel — free FortuneSheet-based Excel lookalike (no login, fully local)
+// MS Excel — real OnlyOffice spreadsheet editor (shared class workbook)
 export const MsExcelEditor = () => (
   <EditorWrapper title="MS Excel">
-    <ExcelPro />
+    <OnlyOfficeExcel />
   </EditorWrapper>
 );
 
