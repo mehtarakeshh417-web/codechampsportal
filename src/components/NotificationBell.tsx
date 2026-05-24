@@ -45,18 +45,22 @@ const typeColors: Record<string, string> = {
   info: "text-white/60",
 };
 
-const getNotificationRoute = (type: string, role: string): string | null => {
-  switch (type) {
+const isAssignmentNotification = (notification: Pick<Notification, "type" | "title" | "message">) => {
+  const text = `${notification.title} ${notification.message}`.toLowerCase();
+  return notification.type === "assignment"
+    || notification.type.startsWith("assignment_")
+    || (notification.type === "project_assigned" && text.includes("assignment"));
+};
+
+const getNotificationRoute = (notification: Pick<Notification, "type" | "title" | "message">, role: string): string | null => {
+  if (isAssignmentNotification(notification)) return `/dashboard/assignments`;
+
+  switch (notification.type) {
     case "project_assigned":
     case "project_submitted":
     case "project_graded":
     case "feedback_received":
       return `/dashboard/projects`;
-    case "assignment":
-    case "assignment_assigned":
-    case "assignment_submitted":
-    case "assignment_graded":
-      return `/dashboard/assignments`;
     case "announcement":
       return role === "student" ? `/dashboard` : `/dashboard/announcements`;
     case "discussion":
@@ -124,7 +128,7 @@ const NotificationBell = () => {
       setNotifications((prev) => prev.map((item) => item.id === n.id ? { ...item, is_read: true } : item));
     }
     // Navigate to relevant page
-    const route = getNotificationRoute(n.type, user?.role || "student");
+    const route = getNotificationRoute(n, user?.role || "student");
     if (route) {
       setOpen(false);
       navigate(route);
@@ -199,7 +203,7 @@ const NotificationBell = () => {
                   notifications.map((n) => {
                     const Icon = typeIcons[n.type] || Bell;
                     const color = typeColors[n.type] || "text-white/60";
-                    const route = getNotificationRoute(n.type, user?.role || "student");
+                    const route = getNotificationRoute(n, user?.role || "student");
                     return (
                       <button
                         key={n.id}
