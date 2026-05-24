@@ -22,6 +22,11 @@ const typeIcons: Record<string, React.ElementType> = {
   feedback_received: MessageCircle,
   announcement: Megaphone,
   assignment: FileText,
+  assignment_assigned: FileText,
+  assignment_submitted: CheckCircle2,
+  assignment_graded: Star,
+  discussion: MessageCircle,
+  discussion_reply: MessageCircle,
   info: Bell,
 };
 
@@ -32,6 +37,11 @@ const typeColors: Record<string, string> = {
   feedback_received: "text-[hsl(var(--secondary))]",
   announcement: "text-[hsl(var(--neon-orange))]",
   assignment: "text-[hsl(var(--neon-blue))]",
+  assignment_assigned: "text-[hsl(var(--neon-blue))]",
+  assignment_submitted: "text-[hsl(var(--neon-green))]",
+  assignment_graded: "text-[hsl(var(--neon-orange))]",
+  discussion: "text-[hsl(var(--secondary))]",
+  discussion_reply: "text-[hsl(var(--secondary))]",
   info: "text-white/60",
 };
 
@@ -43,9 +53,12 @@ const getNotificationRoute = (type: string, role: string): string | null => {
     case "feedback_received":
       return `/dashboard/projects`;
     case "assignment":
+    case "assignment_assigned":
+    case "assignment_submitted":
+    case "assignment_graded":
       return `/dashboard/assignments`;
     case "announcement":
-      return role === "school" || role === "teacher" ? "/dashboard/announcements" : `/dashboard`;
+      return `/dashboard/announcements`;
     case "discussion":
     case "discussion_reply":
       return `/dashboard/discussions`;
