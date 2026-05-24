@@ -39,7 +39,7 @@ interface Submission {
 
 const StudentAssignments = () => {
   const { user } = useAuth();
-  const { students, teachers } = useData();
+  const { students } = useData();
   const student = students.find((s) => s.user_id === user?.id || s.id === user?.id);
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -133,38 +133,6 @@ const StudentAssignments = () => {
     toast.success(`Submitted! Score: ${score}% (${correct}/${assignment.questions.length} correct)`);
   };
 
-  const submitProject = async (projectId: string) => {
-    if (!student) return;
-    if (!projNote.trim()) { toast.error("Enter your submission notes"); return; }
-
-    const { error } = await supabase.from("project_submissions" as any).insert({
-      project_id: projectId,
-      student_id: student.id,
-      notes: projNote,
-    } as any);
-
-    if (error) { toast.error("Failed to submit. Try again."); console.error(error); return; }
-
-    // Find the project to get its teacher
-    const proj = projects.find(p => p.id === projectId);
-
-    // Notify the teacher
-    // We need to find the teacher via the project's teacher_id - fetch it
-    const { data: projData } = await supabase.from("projects").select("teacher_id, teachers(user_id, first_name)").eq("id", projectId).single();
-    if (projData && (projData as any).teachers?.user_id) {
-      await supabase.from("notifications").insert({
-        user_id: (projData as any).teachers.user_id,
-        title: `🚀 ${student.name} submitted a project`,
-        message: `${student.name} (${student.class}-${student.section}) has submitted the project "${proj?.title || ""}". Review it in your Projects dashboard.`,
-        type: "project_submitted",
-      } as any);
-    }
-
-    setProjSubmissions({ ...projSubmissions, [projectId]: projNote });
-    setProjNote("");
-    toast.success("Project submitted!");
-  };
-
   if (loading) {
     return (
       <div className="glass-card p-12 text-center">
@@ -176,22 +144,11 @@ const StudentAssignments = () => {
   return (
     <div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">Assignments & Projects</span></h1>
-        <p className="text-white/70 font-body mb-6">{assignments.length} assignment(s) · {projects.length} project(s) assigned to you</p>
+        <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">Assignments</span></h1>
+        <p className="text-white/70 font-body mb-6">{assignments.length} assignment(s) assigned to you</p>
       </motion.div>
 
-      <Tabs defaultValue="assignments" className="w-full">
-        <TabsList className="bg-white/5 border border-white/10 mb-6">
-          <TabsTrigger value="assignments" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary text-white/70 font-body gap-1">
-            <FileText className="w-3.5 h-3.5" /> Assignments ({assignments.length})
-          </TabsTrigger>
-          <TabsTrigger value="projects" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary text-white/70 font-body gap-1">
-            <Code className="w-3.5 h-3.5" /> Projects ({projects.length})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="assignments">
-          {assignments.length === 0 ? (
+      {assignments.length === 0 ? (
             <div className="glass-card p-12 text-center">
               <FileText className="w-16 h-16 text-white/20 mx-auto mb-4" />
               <p className="text-white/50 font-body">No assignments pending. Check back when your teacher creates one!</p>
@@ -286,72 +243,6 @@ const StudentAssignments = () => {
               })}
             </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="projects">
-          {projects.length === 0 ? (
-            <div className="glass-card p-12 text-center">
-              <Code className="w-16 h-16 text-white/20 mx-auto mb-4" />
-              <p className="text-white/50 font-body">No projects assigned yet. Check back later!</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {projects.map((p, i) => {
-                const isExpanded = expandedId === p.id;
-                const isProjectSubmitted = !!projSubmissions[p.id];
-                return (
-                  <motion.div key={p.id} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: i * 0.03 }}>
-                    <div className="glass-card overflow-hidden">
-                      <button onClick={() => setExpandedId(isExpanded ? null : p.id)} className="w-full p-4 flex items-center gap-4 hover:bg-white/5 transition-colors">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isProjectSubmitted ? "bg-gradient-to-br from-neon-green to-[hsl(170,80%,45%)]" : "bg-gradient-to-br from-neon-orange to-[hsl(45,100%,55%)]"}`}>
-                          {isProjectSubmitted ? <CheckCircle2 className="w-5 h-5 text-white" /> : <Code className="w-5 h-5 text-white" />}
-                        </div>
-                        <div className="flex-1 text-left">
-                          <h3 className="font-display text-sm font-bold text-white">{p.title}</h3>
-                          <p className="text-xs text-white/60 font-body">{p.technology} · {p.submissionType}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs bg-neon-orange/15 text-neon-orange px-2 py-0.5 rounded-full">{p.technology}</span>
-                          {isProjectSubmitted && <span className="text-xs bg-neon-green/15 text-neon-green px-2 py-0.5 rounded-full">Submitted</span>}
-                          {isExpanded ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronRight className="w-4 h-4 text-white/50" />}
-                        </div>
-                      </button>
-
-                      <AnimatePresence>
-                        {isExpanded && (
-                          <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
-                            <div className="px-4 pb-4 space-y-3 border-t border-white/10 pt-3">
-                              <p className="text-sm text-white/80 font-body">{p.description}</p>
-                              {p.dueDate && <p className="text-xs text-white/50 font-body flex items-center gap-1"><Clock className="w-3 h-3" /> Due: {new Date(p.dueDate).toLocaleDateString()}</p>}
-
-                              {isProjectSubmitted ? (
-                                <div className="bg-neon-green/10 border border-neon-green/20 rounded-xl p-4">
-                                  <CheckCircle2 className="w-6 h-6 text-neon-green mx-auto mb-2" />
-                                  <p className="text-sm text-white/80 font-body text-center">Project submitted!</p>
-                                  <p className="text-xs text-white/50 font-body text-center mt-1">Your notes: {projSubmissions[p.id]}</p>
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  <textarea value={projNote} onChange={(e) => setProjNote(e.target.value)} placeholder="Describe your work, paste links, or add notes about your project..." rows={3} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50 resize-none" />
-                                  <div className="flex justify-end">
-                                    <Button onClick={() => submitProject(p.id)} className="bg-gradient-to-r from-neon-orange to-[hsl(45,100%,55%)] text-white">
-                                      <Send className="w-4 h-4 mr-1" /> Submit Project
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
     </div>
   );
 };
