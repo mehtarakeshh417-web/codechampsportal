@@ -1,68 +1,35 @@
 ## Goal
-Make the curriculum (and broader student area) feel like a game without changing any lesson/topic content. Existing scaffolding in `src/components/curriculum/enhancements/` (XP HUD, mascot, streaks, badges, sounds, celebration overlay) is already in place but currently localStorage-only. We will wire it up properly, sync to Lovable Cloud so progress follows the student across devices, and surface it across the student dashboard, curriculum list, topic pages, and quizzes.
+Enable the teacher role to add students — both manually and via bulk upload — exactly like the school (Principal) role, but scoped to the classes that teacher is assigned to.
 
-## What gets gamified
+## Changes
 
-1. Student Dashboard
-   - Top "Player Card" strip: avatar, level, XP bar to next level, coin balance, current streak, total badges.
-   - Daily streak nudge ("Open any chapter today to keep your 5-day streak!").
-   - Mini leaderboard tile (class-wise), pulled from existing `leaderboard` data.
+### 1. New teacher page: `src/pages/teacher/TeacherStudents.tsx`
+Mirror `SchoolStudents.tsx` with these differences:
+- Class dropdown limited to the teacher's assigned classes (from `teachers.classes` for the logged-in teacher).
+- Section dropdown uses the school's custom sections (same `school.sections` source).
+- Teacher field is auto-set to the current teacher (hidden, no picker).
+- `schoolId` resolved from the teacher's record (not `user.id`).
+- Student list shows only students belonging to this teacher.
+- Reuses `addStudent`, `deleteStudent`, `updateStudent` from `DataContext` and `BulkStudentUpload` component.
 
-2. Curriculum dashboard (chapter list)
-   - Each chapter card shows: % complete, XP earned from that chapter, a star meter (1–3 stars based on completion + quiz score), and a lock/unlock animation.
-   - Class-level XP total + level badge at the top.
+### 2. Bulk upload scoping
+Update `src/components/BulkStudentUpload.tsx` to accept optional `allowedClasses` and `defaultTeacherId` props:
+- When provided (teacher mode), validate every CSV row's class against `allowedClasses` and force `teacherId` to `defaultTeacherId`.
+- When omitted (school mode), behavior is unchanged.
 
-3. Topic pages (Learn / Activities / Recap / Quiz)
-   - Persistent floating XP/Coin HUD (already exists) shown on every topic page.
-   - Mascot reactions on page change, quiz answer, completion.
-   - Award XP for: opening a topic (+5), finishing all pages (+25), correct quiz answer (+10), perfect quiz (+50 bonus + badge).
-   - Confetti + sound on level-up, badge unlock, chapter complete.
-   - "Daily quest" banner ("Finish 1 topic today for +30 XP").
+### 3. Routing + navigation
+- Add `<Route path="students" element={<TeacherStudents />} />` to `teacherRoutes` in `src/pages/Dashboard.tsx`.
+- Add a "Students" nav item for the teacher role in `src/components/DashboardLayout.tsx` (matches existing teacher nav style).
 
-4. Quizzes
-   - Per-question XP popup, combo multiplier for streaks of correct answers, end-of-quiz star screen.
+### 4. Backend permission
+`supabase/functions/manage-users/index.ts` currently allows only `admin` and `school` roles to create users. Extend the role check to also allow `teacher`:
+- Permit `teacher` callers to use `create_user` and `create_users_bulk` with role `student` only.
+- For `delete_user`, allow a teacher to delete only students whose `teacher_id` matches the teacher's id in the same school.
+- Reject any other action for teachers.
 
-## Mechanics
-
-- XP curve: level = floor(sqrt(xp / 50)) + 1 (gentle progression).
-- Coins = floor(xp / 10), spendable later (placeholder for now — show "Coming soon: Avatar shop").
-- Streaks: based on calendar day of any curriculum activity.
-- Badges (initial set): First Step, 3-Day Streak, 7-Day Streak, Quiz Ace (perfect quiz), Chapter Champ (100% chapter), Class Conqueror (all chapters in a class), XP Milestones (100/500/2000).
-
-## Storage (Lovable Cloud)
-
-New table `student_game_state` (1 row per `auth.users.id`):
-- `user_id uuid PK references auth.users`
-- `xp int default 0`, `coins int default 0`
-- `streak_days int default 0`, `last_visit_date date`
-- `badges text[] default '{}'`
-- `theme text default 'cyber'`, `sound_on bool default true`
-- `updated_at timestamptz`
-- RLS: user can `select`/`insert`/`update` only their own row. No delete.
-
-Hook `useGameState(userId)` replaces / wraps `useLocalGameState`:
-- Loads row on mount (creates it if missing).
-- Optimistic local update + debounced upsert to Cloud (so XP feels instant).
-- Falls back to localStorage if offline / not signed in.
-
-## Visual polish (no content changes)
-
-- Animated XP bar fill, coin counter ticker, badge unlock modal with confetti.
-- Three theme presets the student can toggle (cyber / candy / space) — already scaffolded, just expose a switcher in the Player Card.
-- Sound toggle in HUD; sounds are short and optional, default off for accessibility.
+### 5. No schema changes
+The `students` table already has `teacher_id` and `school_id`. RLS policies for school-scoped student inserts via the edge function continue to apply (the edge function runs with the service role).
 
 ## Out of scope
-
-- No edits to lesson text, images, video, quiz questions, or chapter structure.
-- No changes to teacher / school / admin areas.
-- Avatar shop is shown as "Coming soon" — not implemented this round.
-
-## Technical changes
-
-- Migration: create `student_game_state` table + RLS policies.
-- New hook: `src/hooks/useGameState.ts` (Cloud-synced).
-- New component: `PlayerCard.tsx` for dashboard + curriculum header.
-- New component: `ChapterStarMeter.tsx` for chapter cards.
-- Wire HUD/mascot/celebration into `StudentDashboard`, `StudentCurriculum`, `TopicViewer`/`AITopicViewer`, `TopicQuiz`.
-- Add XP award calls at the right lifecycle points (page view, topic complete, quiz answer, quiz finish).
-- Daily-quest + streak nudge components driven by the same hook.
+- No change to school admin flows.
+- No change to student/teacher dashboards beyond the new page + nav link.
