@@ -44,12 +44,24 @@ Deno.serve(async (req) => {
     const roles = (callerRoles || []).map((r: any) => r.role);
     const isAdmin = roles.includes("admin");
     const isSchool = roles.includes("school");
+    const isTeacher = roles.includes("teacher");
 
-    if (!isAdmin && !isSchool) {
+    if (!isAdmin && !isSchool && !isTeacher) {
       return new Response(JSON.stringify({ error: "Insufficient permissions" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Resolve teacher record (used for scoped permissions below)
+    let teacherRecord: { id: string; school_id: string } | null = null;
+    if (isTeacher && !isAdmin && !isSchool) {
+      const { data: tRow } = await supabase
+        .from("teachers")
+        .select("id, school_id")
+        .eq("user_id", caller.id)
+        .maybeSingle();
+      teacherRecord = tRow as any;
     }
 
     const body = await req.json();
@@ -61,6 +73,14 @@ Deno.serve(async (req) => {
       // Schools can only create teachers and students
       if (isSchool && !isAdmin && !["teacher", "student"].includes(role)) {
         return new Response(JSON.stringify({ error: "Schools can only create teachers and students" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Teachers can only create students
+      if (isTeacher && !isAdmin && !isSchool && role !== "student") {
+        return new Response(JSON.stringify({ error: "Teachers can only create students" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -128,6 +148,10 @@ Deno.serve(async (req) => {
           errors.push(`${u.email}: insufficient permissions for role ${u.role}`);
           continue;
         }
+        if (isTeacher && !isAdmin && !isSchool && u.role !== "student") {
+          errors.push(`${u.email}: teachers can only create students`);
+          continue;
+        }
 
         const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
           email: u.email,
@@ -191,6 +215,28 @@ Deno.serve(async (req) => {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
+        }
+      }
+
+      // Teachers can only delete their own students
+      if (isTeacher && !isAdmin && !isSchool) {
+        if (!teacherRecord) {
+          return new Response(JSON.stringify({ error: "Teacher record not found" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: ownStudent } = await supabase
+          .from("students")
+          .select("id")
+          .eq("user_id", user_id)
+          .eq("teacher_id", teacherRecord.id)
+          .eq("school_id", teacherRecord.school_id);
+        if (!ownStudent || ownStudent.length === 0) {
+          return new Response(JSON.stringify({ error: "Student is not in your class" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
       }
 

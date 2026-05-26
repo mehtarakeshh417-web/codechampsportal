@@ -11,6 +11,8 @@ interface BulkStudentUploadProps {
   teachers: { id: string; firstName: string; lastName: string; classes: string[] }[];
   sections: string[];
   onComplete: () => void;
+  allowedClasses?: string[];
+  defaultTeacherId?: string;
 }
 
 interface ParsedRow {
@@ -29,7 +31,7 @@ const CLASS_OPTIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "
 
 const usernameToEmail = (username: string) => `${username}@avartan.local`;
 
-const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete }: BulkStudentUploadProps) => {
+const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedClasses, defaultTeacherId }: BulkStudentUploadProps) => {
   const [show, setShow] = useState(false);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -97,20 +99,20 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete }: BulkStu
           const password = getVal(row, "Password", "password", "Pass", "pass");
 
           const errors: string[] = [];
+          const classList = allowedClasses && allowedClasses.length ? allowedClasses : CLASS_OPTIONS;
           if (!name) errors.push("Name required");
           if (!fatherName) errors.push("Father name required");
-          if (!cls || !CLASS_OPTIONS.includes(cls)) errors.push(`Invalid class "${cls}"`);
+          if (!cls || !classList.includes(cls)) errors.push(`Invalid class "${cls}"${allowedClasses ? ` (allowed: ${allowedClasses.join(", ")})` : ""}`);
           if (!section || !sections.includes(section)) errors.push(`Invalid section "${section}"`);
           if (!rollNo) errors.push("Roll no required");
           if (!username) errors.push("Username required");
           else if (!/^[a-zA-Z0-9._-]+$/.test(username)) errors.push("Username: only letters, numbers, dots, hyphens, underscores");
           else if (password.length < 6) errors.push("Password min 6 chars");
 
-          // Find teacher
-          const matchedTeacher = teachers.find(
-            (t) => `${t.firstName} ${t.lastName}`.toLowerCase() === teacherName.toLowerCase()
-          );
-          if (!matchedTeacher) errors.push(`Teacher "${teacherName}" not found`);
+          const matchedTeacher = defaultTeacherId
+            ? teachers.find((t) => t.id === defaultTeacherId)
+            : teachers.find((t) => `${t.firstName} ${t.lastName}`.toLowerCase() === teacherName.toLowerCase());
+          if (!matchedTeacher) errors.push(defaultTeacherId ? "Teacher binding missing" : `Teacher "${teacherName}" not found`);
 
           return {
             name, fatherName, class: cls, section, rollNo,
@@ -197,9 +199,9 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete }: BulkStu
           continue;
         }
 
-        const matchedTeacher = teachers.find(
-          (t) => `${t.firstName} ${t.lastName}`.toLowerCase() === row.teacherName.toLowerCase()
-        );
+        const matchedTeacher = defaultTeacherId
+          ? teachers.find((t) => t.id === defaultTeacherId)
+          : teachers.find((t) => `${t.firstName} ${t.lastName}`.toLowerCase() === row.teacherName.toLowerCase());
 
         const { error: insertErr } = await supabase.from("students").insert({
           user_id: createdUser.id,
