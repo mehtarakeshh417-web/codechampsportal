@@ -167,6 +167,14 @@ Deno.serve(async (req) => {
             errors.push(`${u.email}: teachers can only create students`);
             return;
           }
+          if (isTeacher && !isAdmin && !isSchool && u.student) {
+            if (!teacherRecord) {
+              errors.push(`${u.email}: teacher profile not found`);
+              return;
+            }
+            u.student.school_id = teacherRecord.school_id;
+            u.student.teacher_id = teacherRecord.id;
+          }
 
           const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
             email: u.email,
