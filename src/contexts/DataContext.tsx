@@ -141,7 +141,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addSchool = useCallback(async (data: { name: string; address: string; state: string; city: string; phone: string; username: string; password: string }): Promise<SchoolData | null> => {
     const { data: result, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "create_user", email: usernameToEmail(data.username), password: passwordForAuth(data.password), role: "school", metadata: { display_name: data.name, school_name: data.name } },
+      body: { action: "create_user", email: usernameToEmail(data.username), password: passwordForAuth(data.password), role: "school", metadata: { username: data.username, display_name: data.name, school_name: data.name } },
     });
     if (error || result?.error) { console.error("Create school user failed:", error || result?.error); return null; }
 
@@ -162,7 +162,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const actualSchoolId = school?.id || data.schoolId;
 
     const { data: result, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "create_user", email: usernameToEmail(username), password: passwordForAuth(password), role: "teacher", metadata: { display_name: `${data.firstName} ${data.lastName}` } },
+      body: { action: "create_user", email: usernameToEmail(username), password: passwordForAuth(password), role: "teacher", metadata: { username, display_name: `${data.firstName} ${data.lastName}` } },
     });
     if (error || result?.error) { console.error("Create teacher user failed:", error || result?.error); return null; }
 
@@ -188,7 +188,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: usernameToEmail(username),
         password: passwordForAuth(password),
         role: "student",
-        metadata: { display_name: data.name },
+        metadata: { username, display_name: data.name },
         student: {
           school_id: actualSchoolId,
           teacher_id: data.teacherId || null,
