@@ -133,6 +133,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!error) return true;
     const { error: normalizedError } = await supabase.auth.signInWithPassword({ email, password: passwordForAuth(password) });
     if (!normalizedError) return true;
+    const legacyUnsafeEmail = `u_${toHex(username.trim())}@avartan.local`.toLowerCase();
+    if (legacyUnsafeEmail !== email) {
+      const { error: legacyUnsafeError } = await supabase.auth.signInWithPassword({ email: legacyUnsafeEmail, password });
+      if (!legacyUnsafeError) return true;
+      const { error: legacyUnsafeNormalizedError } = await supabase.auth.signInWithPassword({ email: legacyUnsafeEmail, password: passwordForAuth(password) });
+      if (!legacyUnsafeNormalizedError) return true;
+    }
     // Fallback: legacy accounts created with @codechamps.local domain
     const legacyEmail = `${username}@codechamps.local`;
     const { error: legacyError } = await supabase.auth.signInWithPassword({ email: legacyEmail, password });
