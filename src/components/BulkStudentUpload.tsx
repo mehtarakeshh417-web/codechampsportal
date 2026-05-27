@@ -188,25 +188,31 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
         metadata: { display_name: row.name },
       }));
 
-      // Create all auth users in bulk via edge function
-      const { data: bulkResult, error: bulkError } = await supabase.functions.invoke("manage-users", {
-        body: { action: "create_users_bulk", users: usersPayload },
-      });
-
-      if (bulkError) {
-        toast.error(`Bulk creation failed: ${bulkError.message}`);
-        setUploading(false);
-        return;
+      // Chunk into batches of 15 to stay under the edge function timeout
+      const CHUNK = 15;
+      const createdUsers: any[] = [];
+      const bulkErrors: string[] = [];
+      for (let i = 0; i < usersPayload.length; i += CHUNK) {
+        const slice = usersPayload.slice(i, i + CHUNK);
+        const { data: bulkResult, error: bulkError } = await supabase.functions.invoke("manage-users", {
+          body: { action: "create_users_bulk", users: slice },
+        });
+        if (bulkError) {
+          const detail = (bulkResult as any)?.error || bulkError.message || "Edge function failed";
+          toast.error(`Bulk creation failed: ${detail}`);
+          setUploading(false);
+          return;
+        }
+        createdUsers.push(...(bulkResult?.users || []));
+        bulkErrors.push(...(bulkResult?.errors || []));
       }
-
-      const createdUsers = bulkResult?.users || [];
-      const bulkErrors = bulkResult?.errors || [];
 
       // Map created users back to rows by email
       const userByEmail = new Map<string, any>();
       for (const u of createdUsers) {
         userByEmail.set(u.email, u);
       }
+
 
       // Now insert student records for successfully created users
       // Also find the actual school table ID
