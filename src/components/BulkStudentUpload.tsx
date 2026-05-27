@@ -12,6 +12,7 @@ interface BulkStudentUploadProps {
   sections: string[];
   onComplete: () => void;
   allowedClasses?: string[];
+  allowedSections?: string[];
   defaultTeacherId?: string;
 }
 
@@ -31,32 +32,56 @@ const CLASS_OPTIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "
 
 const usernameToEmail = (username: string) => `${username}@avartan.local`;
 
-const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedClasses, defaultTeacherId }: BulkStudentUploadProps) => {
+// Normalize a class input like "3", "3rd", "Class 3", "III", "3rd-E" → "3rd".
+// Section suffix (after "-") is stripped — section is a separate field.
+const normalizeClass = (raw: string): string => {
+  if (!raw) return "";
+  let s = String(raw).trim();
+  s = s.split("-")[0].trim();
+  s = s.replace(/^class\s*/i, "").trim();
+  const roman: Record<string, number> = { i:1, ii:2, iii:3, iv:4, v:5, vi:6, vii:7, viii:8, ix:9, x:10 };
+  if (roman[s.toLowerCase()]) s = String(roman[s.toLowerCase()]);
+  const m = s.match(/^(\d{1,2})/);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    if (n >= 1 && n <= 10) {
+      const suffix = n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th";
+      return `${n}${suffix}`;
+    }
+  }
+  return s;
+};
+
+const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedClasses, allowedSections, defaultTeacherId }: BulkStudentUploadProps) => {
   const [show, setShow] = useState(false);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState<{ name: string; success: boolean; username?: string; password?: string; error?: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const effectiveClasses = (allowedClasses && allowedClasses.length ? allowedClasses : CLASS_OPTIONS).map(normalizeClass);
+  const effectiveSections = allowedSections && allowedSections.length ? allowedSections : sections;
+
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new();
     const headers = ["Student Name", "Father Name", "Class", "Section", "Roll No", "Teacher Name", "Username", "Password"];
+    const sampleClass = effectiveClasses[0] || "1st";
+    const sampleSection = effectiveSections[0] || "A";
     const sampleData = [
-      ["Rahul Kumar", "Suresh Kumar", "1st", "A", "1", teachers[0] ? `${teachers[0].firstName} ${teachers[0].lastName}` : "Teacher Name", "rahul_k1", "pass1234"],
-      ["Priya Singh", "Rajesh Singh", "1st", "B", "2", teachers[0] ? `${teachers[0].firstName} ${teachers[0].lastName}` : "Teacher Name", "priya_s2", "pass5678"],
+      ["Rahul Kumar", "Suresh Kumar", sampleClass, sampleSection, "1", teachers[0] ? `${teachers[0].firstName} ${teachers[0].lastName}` : "Teacher Name", "rahul_k1", "pass1234"],
+      ["Priya Singh", "Rajesh Singh", sampleClass, sampleSection, "2", teachers[0] ? `${teachers[0].firstName} ${teachers[0].lastName}` : "Teacher Name", "priya_s2", "pass5678"],
     ];
     const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleData]);
     ws["!cols"] = headers.map(() => ({ wch: 18 }));
     XLSX.utils.book_append_sheet(wb, ws, "Students");
 
-    // Add a reference sheet with valid values
     const refHeaders = ["Valid Classes", "Valid Sections", "Available Teachers"];
-    const maxRows = Math.max(CLASS_OPTIONS.length, sections.length, teachers.length);
+    const maxRows = Math.max(effectiveClasses.length, effectiveSections.length, teachers.length);
     const refData: string[][] = [];
     for (let i = 0; i < maxRows; i++) {
       refData.push([
-        CLASS_OPTIONS[i] || "",
-        sections[i] || "",
+        effectiveClasses[i] || "",
+        effectiveSections[i] || "",
         teachers[i] ? `${teachers[i].firstName} ${teachers[i].lastName}` : "",
       ]);
     }
@@ -91,7 +116,8 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
         const rows: ParsedRow[] = data.map((row) => {
           const name = getVal(row, "Student Name", "Name", "Student_Name", "name", "student name");
           const fatherName = getVal(row, "Father Name", "Father_Name", "FatherName", "father name", "Father's Name");
-          const cls = getVal(row, "Class", "class");
+          const clsRaw = getVal(row, "Class", "class");
+          const cls = normalizeClass(clsRaw);
           const section = getVal(row, "Section", "section");
           const rollNo = getVal(row, "Roll No", "Roll", "RollNo", "roll_no", "roll no", "roll");
           const teacherName = getVal(row, "Teacher Name", "Teacher", "TeacherName", "teacher name", "teacher");
@@ -99,15 +125,13 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
           const password = getVal(row, "Password", "password", "Pass", "pass");
 
           const errors: string[] = [];
-          const classList = allowedClasses && allowedClasses.length ? allowedClasses : CLASS_OPTIONS;
           if (!name) errors.push("Name required");
           if (!fatherName) errors.push("Father name required");
-          if (!cls || !classList.includes(cls)) errors.push(`Invalid class "${cls}"${allowedClasses ? ` (allowed: ${allowedClasses.join(", ")})` : ""}`);
-          if (!section || !sections.includes(section)) errors.push(`Invalid section "${section}"`);
+          if (!cls || !effectiveClasses.includes(cls)) errors.push(`Invalid class "${clsRaw}" (allowed: ${effectiveClasses.join(", ")})`);
+          if (!section || !effectiveSections.includes(section)) errors.push(`Invalid section "${section}" (allowed: ${effectiveSections.join(", ")})`);
           if (!rollNo) errors.push("Roll no required");
           if (!username) errors.push("Username required");
-          else if (!/^[a-zA-Z0-9._-]+$/.test(username)) errors.push("Username: only letters, numbers, dots, hyphens, underscores");
-          else if (password.length < 6) errors.push("Password min 6 chars");
+          if (!password) errors.push("Password required");
 
           const matchedTeacher = defaultTeacherId
             ? teachers.find((t) => t.id === defaultTeacherId)
