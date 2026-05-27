@@ -30,18 +30,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 // Convert any username into an auth-safe email while keeping old simple usernames working.
-const toBase64Url = (value: string) => {
-  const bytes = new TextEncoder().encode(value);
-  let binary = "";
-  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "").toLowerCase();
-};
+const toHex = (value: string) => Array.from(new TextEncoder().encode(value))
+  .map((byte) => byte.toString(16).padStart(2, "0"))
+  .join("");
 
-const fromBase64Url = (value: string) => {
+const fromHex = (value: string) => {
   try {
-    const padded = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
-    const binary = atob(padded);
-    return new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
+    const bytes = value.match(/.{1,2}/g)?.map((part) => parseInt(part, 16)) || [];
+    return new TextDecoder().decode(Uint8Array.from(bytes));
   } catch {
     return value;
   }
@@ -50,11 +46,11 @@ const fromBase64Url = (value: string) => {
 const usernameToEmail = (username: string) => {
   const clean = username.trim();
   const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..");
-  return `${safeLocalPart ? clean : `u_${toBase64Url(clean)}`}@avartan.local`.toLowerCase();
+  return `${safeLocalPart ? clean : `u_${toHex(clean)}`}@avartan.local`.toLowerCase();
 };
 const emailToUsername = (email: string) => {
   const local = email.replace("@avartan.local", "").replace("@codechamps.local", "");
-  return local.startsWith("u_") ? fromBase64Url(local.slice(2)) : local;
+  return local.startsWith("u_") ? fromHex(local.slice(2)) : local;
 };
 const passwordForAuth = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
 
