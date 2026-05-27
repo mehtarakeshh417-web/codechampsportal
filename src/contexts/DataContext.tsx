@@ -176,16 +176,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const actualSchoolId = school?.id || data.schoolId;
 
     const { data: result, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "create_user", email: usernameToEmail(username), password: passwordForAuth(password), role: "student", metadata: { display_name: data.name } },
+      body: { action: "create_users_bulk", users: [{
+        email: usernameToEmail(username),
+        password: passwordForAuth(password),
+        role: "student",
+        metadata: { display_name: data.name },
+        student: {
+          school_id: actualSchoolId,
+          teacher_id: data.teacherId || null,
+          name: data.name,
+          father_name: data.fatherName,
+          class: data.class,
+          section: data.section,
+          roll_no: data.rollNo,
+        },
+      }] },
     });
-    if (error || result?.error) { console.error("Create student user failed:", error || result?.error); return null; }
-
-    const { data: student, error: ie } = await supabase.from("students").insert({
-      user_id: result.user.id, school_id: actualSchoolId, teacher_id: data.teacherId,
-      name: data.name, father_name: data.fatherName, class: data.class,
-      section: data.section, roll_no: data.rollNo,
-    }).select().single();
-    if (ie) { console.error("Insert student failed:", ie); return null; }
+    if (error || result?.error || result?.errors?.length) { console.error("Create student failed:", error || result?.error || result?.errors); return null; }
+    const student = result?.students?.[0] || result?.users?.[0];
+    if (!student?.id) { console.error("Create student failed: missing student row"); return null; }
 
     const newStudent = { ...mapStudent(student), username, password };
     setStudents(prev => [...prev, newStudent]);
