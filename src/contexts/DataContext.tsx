@@ -46,7 +46,23 @@ export interface StudentData {
   createdAt: string;
 }
 
-const usernameToEmail = (username: string) => `${username}@avartan.local`;
+const toHex = (value: string) => Array.from(new TextEncoder().encode(value))
+  .map((byte) => byte.toString(16).padStart(2, "0"))
+  .join("");
+const hashUsername = (value: string) => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+};
+const usernameToEmail = (username: string) => {
+  const clean = username.trim();
+  const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..") && !clean.startsWith(".") && !clean.endsWith(".") && clean.length <= 60;
+  return `${safeLocalPart ? clean : `u_${hashUsername(clean)}_${toHex(clean).slice(0, 24)}`}@avartan.local`.toLowerCase();
+};
+const passwordForAuth = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
 const generateUsername = (prefix: string, name: string, index: number) => {
   const clean = name.toLowerCase().replace(/[^a-z]/g, "").slice(0, 6);
   return `${prefix}_${clean}${index}`;
@@ -125,7 +141,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addSchool = useCallback(async (data: { name: string; address: string; state: string; city: string; phone: string; username: string; password: string }): Promise<SchoolData | null> => {
     const { data: result, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "create_user", email: usernameToEmail(data.username), password: data.password, role: "school", metadata: { display_name: data.name, school_name: data.name } },
+      body: { action: "create_user", email: usernameToEmail(data.username), password: passwordForAuth(data.password), role: "school", metadata: { username: data.username, display_name: data.name, school_name: data.name } },
     });
     if (error || result?.error) { console.error("Create school user failed:", error || result?.error); return null; }
 
@@ -146,7 +162,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const actualSchoolId = school?.id || data.schoolId;
 
     const { data: result, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "create_user", email: usernameToEmail(username), password, role: "teacher", metadata: { display_name: `${data.firstName} ${data.lastName}` } },
+      body: { action: "create_user", email: usernameToEmail(username), password: passwordForAuth(password), role: "teacher", metadata: { username, display_name: `${data.firstName} ${data.lastName}` } },
     });
     if (error || result?.error) { console.error("Create teacher user failed:", error || result?.error); return null; }
 
@@ -168,16 +184,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const actualSchoolId = school?.id || data.schoolId;
 
     const { data: result, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "create_user", email: usernameToEmail(username), password, role: "student", metadata: { display_name: data.name } },
+      body: { action: "create_users_bulk", users: [{
+        email: usernameToEmail(username),
+        password: passwordForAuth(password),
+        role: "student",
+        metadata: { username, display_name: data.name },
+        student: {
+          school_id: actualSchoolId,
+          teacher_id: data.teacherId || null,
+          name: data.name,
+          father_name: data.fatherName,
+          class: data.class,
+          section: data.section,
+          roll_no: data.rollNo,
+        },
+      }] },
     });
-    if (error || result?.error) { console.error("Create student user failed:", error || result?.error); return null; }
-
-    const { data: student, error: ie } = await supabase.from("students").insert({
-      user_id: result.user.id, school_id: actualSchoolId, teacher_id: data.teacherId,
-      name: data.name, father_name: data.fatherName, class: data.class,
-      section: data.section, roll_no: data.rollNo,
-    }).select().single();
-    if (ie) { console.error("Insert student failed:", ie); return null; }
+    if (error || result?.error || result?.errors?.length) { console.error("Create student failed:", error || result?.error || result?.errors); return null; }
+    const student = result?.students?.[0] || result?.users?.[0];
+    if (!student?.id) { console.error("Create student failed: missing student row"); return null; }
 
     const newStudent = { ...mapStudent(student), username, password };
     setStudents(prev => [...prev, newStudent]);

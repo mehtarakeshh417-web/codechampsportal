@@ -25,7 +25,7 @@ const TeacherStudents = () => {
   const myClasses = Array.from(new Set(myCombined.map((c) => c.split("-")[0].trim()))); // ["3rd","4th"]
   const mySections = Array.from(new Set(myCombined.map((c) => c.split("-")[1]?.trim()).filter(Boolean))); // ["E","F","A"]
   const school = teacher ? schools.find((s) => s.id === teacher.schoolId) : undefined;
-  const schoolUserId = school?.user_id || "";
+  const schoolUserId = school?.user_id || teacher?.schoolId || "";
   const SECTION_OPTIONS = mySections.length ? mySections : (school?.sections?.length ? school.sections : (getSchool(schoolUserId)?.sections || DEFAULT_SECTIONS));
   const students = getTeacherStudents(user?.id || "");
 

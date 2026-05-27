@@ -30,7 +30,23 @@ interface ParsedRow {
 
 const CLASS_OPTIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 
-const usernameToEmail = (username: string) => `${username}@avartan.local`;
+const toHex = (value: string) => Array.from(new TextEncoder().encode(value))
+  .map((byte) => byte.toString(16).padStart(2, "0"))
+  .join("");
+const hashUsername = (value: string) => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+};
+const usernameToEmail = (username: string) => {
+  const clean = username.trim();
+  const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..") && !clean.startsWith(".") && !clean.endsWith(".") && clean.length <= 60;
+  return `${safeLocalPart ? clean : `u_${hashUsername(clean)}_${toHex(clean).slice(0, 24)}`}@avartan.local`.toLowerCase();
+};
+const passwordForAuth = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
 
 // Normalize a class input like "3", "3rd", "Class 3", "III", "3rd-E" → "3rd".
 // Section suffix (after "-") is stripped — section is a separate field.
@@ -180,18 +196,34 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
     const newResults: typeof results = [];
 
     try {
-      // Prepare bulk user creation payload
-      const usersPayload = validRows.map((row) => ({
-        email: usernameToEmail(row.username),
-        password: row.password,
-        role: "student" as const,
-        metadata: { display_name: row.name },
-      }));
+      const { data: schoolRecord } = await supabase.from("schools").select("id").eq("user_id", schoolId).maybeSingle();
+      const actualSchoolId = schoolRecord?.id || schoolId;
 
-      // Chunk into batches of 15 to stay under the edge function timeout
-      const CHUNK = 15;
-      const createdUsers: any[] = [];
-      const bulkErrors: string[] = [];
+      // Prepare complete student records so auth user + student row are created together server-side.
+      const usersPayload = validRows.map((row) => {
+        const matchedTeacher = defaultTeacherId
+          ? teachers.find((t) => t.id === defaultTeacherId)
+          : teachers.find((t) => `${t.firstName} ${t.lastName}`.toLowerCase() === row.teacherName.toLowerCase());
+        return {
+          email: usernameToEmail(row.username),
+          password: passwordForAuth(row.password),
+          role: "student" as const,
+          metadata: { username: row.username, display_name: row.name },
+          student: {
+            school_id: actualSchoolId,
+            teacher_id: matchedTeacher?.id || null,
+            name: row.name,
+            father_name: row.fatherName,
+            class: row.class,
+            section: row.section,
+            roll_no: row.rollNo,
+          },
+        };
+      });
+
+      // Chunk into batches of 8 to stay under auth rate limits and avoid edge timeouts.
+      const CHUNK = 8;
+      const createdStudents: any[] = [];
       for (let i = 0; i < usersPayload.length; i += CHUNK) {
         const slice = usersPayload.slice(i, i + CHUNK);
         const { data: bulkResult, error: bulkError } = await supabase.functions.invoke("manage-users", {
@@ -203,50 +235,17 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
           setUploading(false);
           return;
         }
-        createdUsers.push(...(bulkResult?.users || []));
-        bulkErrors.push(...(bulkResult?.errors || []));
-      }
-
-      // Map created users back to rows by email
-      const userByEmail = new Map<string, any>();
-      for (const u of createdUsers) {
-        userByEmail.set(u.email, u);
-      }
-
-
-      // Now insert student records for successfully created users
-      // Also find the actual school table ID
-      const { data: schoolRecord } = await supabase.from("schools").select("id").eq("user_id", schoolId).maybeSingle();
-      const actualSchoolId = schoolRecord?.id || schoolId;
-
-      for (const row of validRows) {
-        const email = usernameToEmail(row.username);
-        const createdUser = userByEmail.get(email);
-
-        if (!createdUser) {
-          const matchingError = bulkErrors.find((e: string) => e.startsWith(email));
-          newResults.push({ name: row.name, success: false, error: matchingError || "Auth user creation failed" });
-          continue;
-        }
-
-        const matchedTeacher = defaultTeacherId
-          ? teachers.find((t) => t.id === defaultTeacherId)
-          : teachers.find((t) => `${t.firstName} ${t.lastName}`.toLowerCase() === row.teacherName.toLowerCase());
-
-        const { error: insertErr } = await supabase.from("students").insert({
-          user_id: createdUser.id,
-          school_id: actualSchoolId,
-          teacher_id: matchedTeacher?.id || null,
-          name: row.name,
-          father_name: row.fatherName,
-          class: row.class,
-          section: row.section,
-          roll_no: row.rollNo,
+        createdStudents.push(...(bulkResult?.students || bulkResult?.users || []));
+        (bulkResult?.errors || []).forEach((errorText: string) => {
+          const row = validRows.find((r) => errorText.startsWith(usernameToEmail(r.username)));
+          newResults.push({ name: row?.name || errorText.split(":")[0], success: false, error: errorText });
         });
+      }
 
-        if (insertErr) {
-          newResults.push({ name: row.name, success: false, error: insertErr.message });
-        } else {
+      const successfulUserIds = new Set(createdStudents.map((item) => item.user_id || item.id).filter(Boolean));
+      for (const row of validRows) {
+        const created = createdStudents.find((item) => item.email === usernameToEmail(row.username) || item.name === row.name);
+        if (created && (successfulUserIds.has(created.user_id) || successfulUserIds.has(created.id))) {
           newResults.push({ name: row.name, success: true, username: row.username, password: row.password });
         }
       }

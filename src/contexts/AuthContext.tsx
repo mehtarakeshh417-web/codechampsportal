@@ -29,9 +29,40 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Convert username to email format for Supabase auth
-const usernameToEmail = (username: string) => `${username}@avartan.local`;
-const emailToUsername = (email: string) => email.replace("@avartan.local", "");
+// Convert any username into an auth-safe email while keeping old simple usernames working.
+const toHex = (value: string) => Array.from(new TextEncoder().encode(value))
+  .map((byte) => byte.toString(16).padStart(2, "0"))
+  .join("");
+
+const hashUsername = (value: string) => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+};
+
+const fromHex = (value: string) => {
+  try {
+    const bytes = value.match(/.{1,2}/g)?.map((part) => parseInt(part, 16)) || [];
+    return new TextDecoder().decode(Uint8Array.from(bytes));
+  } catch {
+    return value;
+  }
+};
+
+const usernameToEmail = (username: string) => {
+  const clean = username.trim();
+  const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..") && !clean.startsWith(".") && !clean.endsWith(".") && clean.length <= 60;
+  return `${safeLocalPart ? clean : `u_${hashUsername(clean)}_${toHex(clean).slice(0, 24)}`}@avartan.local`.toLowerCase();
+};
+const emailToUsername = (email: string) => {
+  const local = email.replace("@avartan.local", "").replace("@codechamps.local", "");
+  const encoded = local.slice(2);
+  return local.startsWith("u_") && /^[0-9a-f]+$/i.test(encoded) ? fromHex(encoded) : local;
+};
+const passwordForAuth = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
 
 const CACHE_KEY = "cc_auth_user";
 
@@ -52,7 +83,7 @@ const cacheUser = (u: AuthUser) => {
 const clearCachedUser = () => localStorage.removeItem(CACHE_KEY);
 
 const buildAuthUser = async (supaUser: User): Promise<AuthUser | null> => {
-  const username = emailToUsername(supaUser.email || "");
+  const username = (supaUser.user_metadata?.username as string) || emailToUsername(supaUser.email || "");
 
   // Return cached instantly if available
   const cached = getCachedUser(supaUser.id);
@@ -100,10 +131,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const email = usernameToEmail(username);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (!error) return true;
+    const { error: normalizedError } = await supabase.auth.signInWithPassword({ email, password: passwordForAuth(password) });
+    if (!normalizedError) return true;
+    const legacyUnsafeEmail = `u_${toHex(username.trim())}@avartan.local`.toLowerCase();
+    if (legacyUnsafeEmail !== email) {
+      const { error: legacyUnsafeError } = await supabase.auth.signInWithPassword({ email: legacyUnsafeEmail, password });
+      if (!legacyUnsafeError) return true;
+      const { error: legacyUnsafeNormalizedError } = await supabase.auth.signInWithPassword({ email: legacyUnsafeEmail, password: passwordForAuth(password) });
+      if (!legacyUnsafeNormalizedError) return true;
+    }
     // Fallback: legacy accounts created with @codechamps.local domain
     const legacyEmail = `${username}@codechamps.local`;
     const { error: legacyError } = await supabase.auth.signInWithPassword({ email: legacyEmail, password });
-    return !legacyError;
+    if (!legacyError) return true;
+    const { error: legacyNormalizedError } = await supabase.auth.signInWithPassword({ email: legacyEmail, password: passwordForAuth(password) });
+    return !legacyNormalizedError;
   }, []);
 
   const logout = useCallback(async () => {
