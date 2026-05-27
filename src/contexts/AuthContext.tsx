@@ -59,7 +59,8 @@ const usernameToEmail = (username: string) => {
 };
 const emailToUsername = (email: string) => {
   const local = email.replace("@avartan.local", "").replace("@codechamps.local", "");
-  return local.startsWith("u_") ? fromHex(local.slice(2)) : local;
+  const encoded = local.slice(2);
+  return local.startsWith("u_") && /^[0-9a-f]+$/i.test(encoded) ? fromHex(encoded) : local;
 };
 const passwordForAuth = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
 
