@@ -143,41 +143,53 @@ Deno.serve(async (req) => {
 
       console.log(`[BULK CREATE] Processing ${users?.length || 0} users`);
 
-      for (const u of users) {
-        if (isSchool && !isAdmin && !["teacher", "student"].includes(u.role)) {
-          errors.push(`${u.email}: insufficient permissions for role ${u.role}`);
-          continue;
+      const processOne = async (u: any) => {
+        try {
+          if (isSchool && !isAdmin && !["teacher", "student"].includes(u.role)) {
+            errors.push(`${u.email}: insufficient permissions for role ${u.role}`);
+            return;
+          }
+          if (isTeacher && !isAdmin && !isSchool && u.role !== "student") {
+            errors.push(`${u.email}: teachers can only create students`);
+            return;
+          }
+
+          const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+            email: u.email,
+            password: u.password,
+            email_confirm: true,
+            user_metadata: u.metadata || {},
+          });
+
+          if (createError || !newUser?.user) {
+            console.log(`[BULK CREATE] Failed: ${u.email} - ${createError?.message}`);
+            errors.push(`${u.email}: ${createError?.message || "create failed"}`);
+            return;
+          }
+
+          const { error: roleError } = await supabase
+            .from("user_roles")
+            .upsert({ user_id: newUser.user.id, role: u.role }, { onConflict: "user_id,role" });
+
+          if (roleError) {
+            console.log(`[BULK CREATE] Role failed: ${u.email} - ${roleError.message}`);
+            await supabase.auth.admin.deleteUser(newUser.user.id);
+            errors.push(`${u.email}: role assignment failed - ${roleError.message}`);
+            return;
+          }
+
+          results.push(newUser.user);
+        } catch (e: any) {
+          console.log(`[BULK CREATE] Exception ${u.email}: ${e?.message}`);
+          errors.push(`${u.email}: ${e?.message || "unknown error"}`);
         }
-        if (isTeacher && !isAdmin && !isSchool && u.role !== "student") {
-          errors.push(`${u.email}: teachers can only create students`);
-          continue;
-        }
+      };
 
-        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-          email: u.email,
-          password: u.password,
-          email_confirm: true,
-          user_metadata: u.metadata || {},
-        });
-
-        if (createError) {
-          console.log(`[BULK CREATE] Failed: ${u.email} - ${createError.message}`);
-          errors.push(`${u.email}: ${createError.message}`);
-          continue;
-        }
-
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({ user_id: newUser.user.id, role: u.role });
-
-        if (roleError) {
-          console.log(`[BULK CREATE] Role failed: ${u.email} - ${roleError.message}`);
-          await supabase.auth.admin.deleteUser(newUser.user.id);
-          errors.push(`${u.email}: role assignment failed`);
-          continue;
-        }
-
-        results.push(newUser.user);
+      // Process in parallel batches of 5 to avoid hitting auth rate limits and edge function timeout
+      const BATCH = 5;
+      for (let i = 0; i < (users?.length || 0); i += BATCH) {
+        const slice = users.slice(i, i + BATCH);
+        await Promise.all(slice.map(processOne));
       }
 
       console.log(`[BULK CREATE] Done: ${results.length} created, ${errors.length} errors`);
@@ -186,6 +198,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     if (action === "delete_user") {
       const { user_id } = body;
