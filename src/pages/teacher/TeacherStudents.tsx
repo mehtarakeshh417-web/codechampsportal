@@ -90,8 +90,10 @@ const TeacherStudents = () => {
             teachers={[{ id: teacher.id, firstName: teacher.firstName, lastName: teacher.lastName, classes: teacher.classes }]}
             sections={SECTION_OPTIONS}
             allowedClasses={myClasses}
+            allowedSections={SECTION_OPTIONS}
             defaultTeacherId={teacher.id}
             onComplete={() => refreshData()} />
+
           <Button variant="hero" size="xl" onClick={() => setShowForm(true)} disabled={myClasses.length === 0}>
             <Plus className="w-6 h-6 mr-2" /> Add Student
           </Button>
