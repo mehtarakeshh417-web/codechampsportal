@@ -208,7 +208,7 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
           email: usernameToEmail(row.username),
           password: passwordForAuth(row.password),
           role: "student" as const,
-          metadata: { display_name: row.name },
+          metadata: { username: row.username, display_name: row.name },
           student: {
             school_id: actualSchoolId,
             teacher_id: matchedTeacher?.id || null,
