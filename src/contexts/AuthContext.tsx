@@ -29,9 +29,34 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Convert username to email format for Supabase auth
-const usernameToEmail = (username: string) => `${username}@avartan.local`;
-const emailToUsername = (email: string) => email.replace("@avartan.local", "");
+// Convert any username into an auth-safe email while keeping old simple usernames working.
+const toBase64Url = (value: string) => {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "").toLowerCase();
+};
+
+const fromBase64Url = (value: string) => {
+  try {
+    const padded = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+    const binary = atob(padded);
+    return new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
+  } catch {
+    return value;
+  }
+};
+
+const usernameToEmail = (username: string) => {
+  const clean = username.trim();
+  const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..");
+  return `${safeLocalPart ? clean : `u_${toBase64Url(clean)}`}@avartan.local`.toLowerCase();
+};
+const emailToUsername = (email: string) => {
+  const local = email.replace("@avartan.local", "").replace("@codechamps.local", "");
+  return local.startsWith("u_") ? fromBase64Url(local.slice(2)) : local;
+};
+const passwordForAuth = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
 
 const CACHE_KEY = "cc_auth_user";
 
@@ -100,10 +125,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const email = usernameToEmail(username);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (!error) return true;
+    const { error: normalizedError } = await supabase.auth.signInWithPassword({ email, password: passwordForAuth(password) });
+    if (!normalizedError) return true;
     // Fallback: legacy accounts created with @codechamps.local domain
     const legacyEmail = `${username}@codechamps.local`;
     const { error: legacyError } = await supabase.auth.signInWithPassword({ email: legacyEmail, password });
-    return !legacyError;
+    if (!legacyError) return true;
+    const { error: legacyNormalizedError } = await supabase.auth.signInWithPassword({ email: legacyEmail, password: passwordForAuth(password) });
+    return !legacyNormalizedError;
   }, []);
 
   const logout = useCallback(async () => {
