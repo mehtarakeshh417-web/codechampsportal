@@ -209,14 +209,12 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
             class: row.class,
             section: row.section,
             roll_no: row.rollNo,
-            username: row.username,
-            password: row.password,
           },
         };
       });
 
       // Chunk into batches of 8 to stay under auth rate limits and avoid edge timeouts.
-      const CHUNK = 15;
+      const CHUNK = 8;
       const createdStudents: any[] = [];
       for (let i = 0; i < usersPayload.length; i += CHUNK) {
         const slice = usersPayload.slice(i, i + CHUNK);
