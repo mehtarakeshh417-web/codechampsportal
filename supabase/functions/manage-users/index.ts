@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
       let userId: string;
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email,
-        password,
+        password: normalizePassword(password),
         email_confirm: true,
         user_metadata: metadata || {},
       });
@@ -111,12 +111,11 @@ Deno.serve(async (req) => {
       if (createError) {
         // If user already exists, find and return them
         if (createError.message.includes("already been registered")) {
-          const { data: listData } = await supabase.auth.admin.listUsers();
-          const existing = listData?.users?.find((u: any) => u.email === email);
+          const existing = await findUserByEmail(supabase, email);
           if (existing) {
             userId = existing.id;
             // Update password and metadata
-            await supabase.auth.admin.updateUser(existing.id, { password, user_metadata: metadata || {} });
+            await supabase.auth.admin.updateUser(existing.id, { password: normalizePassword(password), user_metadata: metadata || {} });
           } else {
             return new Response(JSON.stringify({ error: createError.message }), {
               status: 400,
