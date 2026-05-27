@@ -34,6 +34,15 @@ const toHex = (value: string) => Array.from(new TextEncoder().encode(value))
   .map((byte) => byte.toString(16).padStart(2, "0"))
   .join("");
 
+const hashUsername = (value: string) => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+};
+
 const fromHex = (value: string) => {
   try {
     const bytes = value.match(/.{1,2}/g)?.map((part) => parseInt(part, 16)) || [];
@@ -45,8 +54,8 @@ const fromHex = (value: string) => {
 
 const usernameToEmail = (username: string) => {
   const clean = username.trim();
-  const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..");
-  return `${safeLocalPart ? clean : `u_${toHex(clean)}`}@avartan.local`.toLowerCase();
+  const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..") && !clean.startsWith(".") && !clean.endsWith(".") && clean.length <= 60;
+  return `${safeLocalPart ? clean : `u_${hashUsername(clean)}_${toHex(clean).slice(0, 24)}`}@avartan.local`.toLowerCase();
 };
 const emailToUsername = (email: string) => {
   const local = email.replace("@avartan.local", "").replace("@codechamps.local", "");
