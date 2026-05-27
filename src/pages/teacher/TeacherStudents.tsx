@@ -21,11 +21,14 @@ const TeacherStudents = () => {
   const [form, setForm] = useState({ name: "", fatherName: "", class: "", section: "", rollNo: "", username: "", password: "" });
 
   const teacher = teachers.find((t) => t.user_id === user?.id || t.id === user?.id);
-  const myClasses = teacher?.classes || [];
+  const myCombined = teacher?.classes || []; // e.g. ["3rd-E", "3rd-F", "4th-A"]
+  const myClasses = Array.from(new Set(myCombined.map((c) => c.split("-")[0].trim()))); // ["3rd","4th"]
+  const mySections = Array.from(new Set(myCombined.map((c) => c.split("-")[1]?.trim()).filter(Boolean))); // ["E","F","A"]
   const school = teacher ? schools.find((s) => s.id === teacher.schoolId) : undefined;
   const schoolUserId = school?.user_id || "";
-  const SECTION_OPTIONS = (school?.sections?.length ? school.sections : (getSchool(schoolUserId)?.sections || DEFAULT_SECTIONS));
+  const SECTION_OPTIONS = mySections.length ? mySections : (school?.sections?.length ? school.sections : (getSchool(schoolUserId)?.sections || DEFAULT_SECTIONS));
   const students = getTeacherStudents(user?.id || "");
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
