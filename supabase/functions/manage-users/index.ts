@@ -5,6 +5,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const normalizePassword = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
+
+const findUserByEmail = async (supabase: any, email: string) => {
+  let page = 1;
+  const perPage = 100;
+  while (page <= 20) {
+    const { data } = await supabase.auth.admin.listUsers({ page, perPage });
+    const found = data?.users?.find((user: any) => user.email?.toLowerCase() === email.toLowerCase());
+    if (found || !data?.users || data.users.length < perPage) return found || null;
+    page++;
+  }
+  return null;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
