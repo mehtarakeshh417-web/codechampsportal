@@ -204,11 +204,15 @@ Deno.serve(async (req) => {
           }
 
           if (u.role === "student" && u.student) {
-            const { data: studentRow, error: studentError } = await supabase
+            const { data: existingStudent } = await supabase
               .from("students")
-              .upsert({ ...u.student, user_id: userId }, { onConflict: "user_id" })
-              .select()
-              .single();
+              .select("id")
+              .eq("user_id", userId)
+              .maybeSingle();
+            const studentWrite = existingStudent
+              ? supabase.from("students").update({ ...u.student, user_id: userId }).eq("id", existingStudent.id).select().single()
+              : supabase.from("students").insert({ ...u.student, user_id: userId }).select().single();
+            const { data: studentRow, error: studentError } = await studentWrite;
             if (studentError) {
               errors.push(`${u.email}: student profile failed - ${studentError.message}`);
               return;
