@@ -46,7 +46,15 @@ export interface StudentData {
   createdAt: string;
 }
 
-const usernameToEmail = (username: string) => `${username}@avartan.local`;
+const toHex = (value: string) => Array.from(new TextEncoder().encode(value))
+  .map((byte) => byte.toString(16).padStart(2, "0"))
+  .join("");
+const usernameToEmail = (username: string) => {
+  const clean = username.trim();
+  const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..");
+  return `${safeLocalPart ? clean : `u_${toHex(clean)}`}@avartan.local`.toLowerCase();
+};
+const passwordForAuth = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
 const generateUsername = (prefix: string, name: string, index: number) => {
   const clean = name.toLowerCase().replace(/[^a-z]/g, "").slice(0, 6);
   return `${prefix}_${clean}${index}`;
@@ -125,7 +133,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addSchool = useCallback(async (data: { name: string; address: string; state: string; city: string; phone: string; username: string; password: string }): Promise<SchoolData | null> => {
     const { data: result, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "create_user", email: usernameToEmail(data.username), password: data.password, role: "school", metadata: { display_name: data.name, school_name: data.name } },
+      body: { action: "create_user", email: usernameToEmail(data.username), password: passwordForAuth(data.password), role: "school", metadata: { display_name: data.name, school_name: data.name } },
     });
     if (error || result?.error) { console.error("Create school user failed:", error || result?.error); return null; }
 
@@ -146,7 +154,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const actualSchoolId = school?.id || data.schoolId;
 
     const { data: result, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "create_user", email: usernameToEmail(username), password, role: "teacher", metadata: { display_name: `${data.firstName} ${data.lastName}` } },
+      body: { action: "create_user", email: usernameToEmail(username), password: passwordForAuth(password), role: "teacher", metadata: { display_name: `${data.firstName} ${data.lastName}` } },
     });
     if (error || result?.error) { console.error("Create teacher user failed:", error || result?.error); return null; }
 
@@ -168,7 +176,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const actualSchoolId = school?.id || data.schoolId;
 
     const { data: result, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "create_user", email: usernameToEmail(username), password, role: "student", metadata: { display_name: data.name } },
+      body: { action: "create_user", email: usernameToEmail(username), password: passwordForAuth(password), role: "student", metadata: { display_name: data.name } },
     });
     if (error || result?.error) { console.error("Create student user failed:", error || result?.error); return null; }
 
