@@ -82,7 +82,7 @@ const cacheUser = (u: AuthUser) => {
 const clearCachedUser = () => localStorage.removeItem(CACHE_KEY);
 
 const buildAuthUser = async (supaUser: User): Promise<AuthUser | null> => {
-  const username = emailToUsername(supaUser.email || "");
+  const username = (supaUser.user_metadata?.username as string) || emailToUsername(supaUser.email || "");
 
   // Return cached instantly if available
   const cached = getCachedUser(supaUser.id);
