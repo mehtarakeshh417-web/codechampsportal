@@ -1,11 +1,12 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const normalizePassword = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
+
+const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
+  status,
+  headers: { ...corsHeaders, "Content-Type": "application/json" },
+});
 
 const findUserByEmail = async (supabase: any, email: string) => {
   let page = 1;
