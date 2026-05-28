@@ -55,10 +55,15 @@ const fromHex = (value: string) => {
 const usernameToEmail = (username: string) => {
   const clean = username.trim();
   const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..") && !clean.startsWith(".") && !clean.endsWith(".") && clean.length <= 60;
+  return `${safeLocalPart ? clean : `u_${hashUsername(clean)}_${toHex(clean).slice(0, 24)}`}@avartan.school`.toLowerCase();
+};
+const usernameToOldAvartanEmail = (username: string) => {
+  const clean = username.trim();
+  const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..") && !clean.startsWith(".") && !clean.endsWith(".") && clean.length <= 60;
   return `${safeLocalPart ? clean : `u_${hashUsername(clean)}_${toHex(clean).slice(0, 24)}`}@avartan.local`.toLowerCase();
 };
 const emailToUsername = (email: string) => {
-  const local = email.replace("@avartan.local", "").replace("@codechamps.local", "");
+  const local = email.replace("@avartan.school", "").replace("@avartan.local", "").replace("@codechamps.local", "");
   const encoded = local.slice(2);
   return local.startsWith("u_") && /^[0-9a-f]+$/i.test(encoded) ? fromHex(encoded) : local;
 };
@@ -133,6 +138,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!error) return true;
     const { error: normalizedError } = await supabase.auth.signInWithPassword({ email, password: passwordForAuth(password) });
     if (!normalizedError) return true;
+    const oldAvartanEmail = usernameToOldAvartanEmail(username);
+    if (oldAvartanEmail !== email) {
+      const { error: localError } = await supabase.auth.signInWithPassword({ email: oldAvartanEmail, password });
+      if (!localError) return true;
+      const { error: localNormalizedError } = await supabase.auth.signInWithPassword({ email: oldAvartanEmail, password: passwordForAuth(password) });
+      if (!localNormalizedError) return true;
+    }
     const legacyUnsafeEmail = `u_${toHex(username.trim())}@avartan.local`.toLowerCase();
     if (legacyUnsafeEmail !== email) {
       const { error: legacyUnsafeError } = await supabase.auth.signInWithPassword({ email: legacyUnsafeEmail, password });
