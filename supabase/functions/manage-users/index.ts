@@ -22,7 +22,7 @@ const findUserByEmail = async (supabase: any, email: string) => {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -33,10 +33,7 @@ Deno.serve(async (req) => {
     // Verify the caller is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "No authorization header" }, 401);
     }
 
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -45,10 +42,7 @@ Deno.serve(async (req) => {
     });
     const { data: { user: caller }, error: callerError } = await callerClient.auth.getUser();
     if (callerError || !caller) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
     // Check caller has admin or school role
@@ -62,10 +56,7 @@ Deno.serve(async (req) => {
     const isTeacher = roles.includes("teacher");
 
     if (!isAdmin && !isSchool && !isTeacher) {
-      return new Response(JSON.stringify({ error: "Insufficient permissions" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Insufficient permissions" }, 403);
     }
 
     // Resolve teacher record (used for scoped permissions below)
