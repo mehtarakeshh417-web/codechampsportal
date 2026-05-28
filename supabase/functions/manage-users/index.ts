@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
 
           if (createError || !newUser?.user) {
             if (createError?.message?.includes("already been registered")) {
-              const existing = await findUserByEmail(supabase, u.email);
+              const existing = await findUserByEmail(supabase, email);
               if (!existing) {
                 errors.push(`${email}: account exists but could not be loaded`);
                 return;
