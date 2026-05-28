@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
             errors.push(`${email}: password is required`);
             return;
           }
-          if (isSchool && !isAdmin && !["teacher", "student"].includes(u.role)) {
+          if (isSchool && !isAdmin && !["teacher", "student"].includes(role)) {
             errors.push(`${email}: insufficient permissions for role ${role}`);
             return;
           }
