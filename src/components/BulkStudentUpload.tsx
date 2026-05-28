@@ -44,9 +44,22 @@ const hashUsername = (value: string) => {
 const usernameToEmail = (username: string) => {
   const clean = username.trim();
   const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..") && !clean.startsWith(".") && !clean.endsWith(".") && clean.length <= 60;
-  return `${safeLocalPart ? clean : `u_${hashUsername(clean)}_${toHex(clean).slice(0, 24)}`}@avartan.local`.toLowerCase();
+  return `${safeLocalPart ? clean : `u_${hashUsername(clean)}_${toHex(clean).slice(0, 24)}`}@avartan.school`.toLowerCase();
 };
 const passwordForAuth = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
+
+const getInvokeErrorDetail = async (error: any, data: any) => {
+  if (data?.error) return data.error;
+  const context = error?.context;
+  if (context) {
+    try {
+      const payload = await context.clone().json();
+      if (payload?.error) return payload.error;
+      if (payload?.errors?.length) return payload.errors.join("; ");
+    } catch {}
+  }
+  return error?.message || "Edge function failed";
+};
 
 // Normalize a class input like "3", "3rd", "Class 3", "III", "3rd-E" → "3rd".
 // Section suffix (after "-") is stripped — section is a separate field.
@@ -230,7 +243,7 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
           body: { action: "create_users_bulk", users: slice },
         });
         if (bulkError) {
-          const detail = (bulkResult as any)?.error || bulkError.message || "Edge function failed";
+          const detail = await getInvokeErrorDetail(bulkError, bulkResult);
           toast.error(`Bulk creation failed: ${detail}`);
           setUploading(false);
           return;
