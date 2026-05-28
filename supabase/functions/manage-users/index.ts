@@ -146,31 +146,56 @@ Deno.serve(async (req) => {
       const results: any[] = [];
       const errors: string[] = [];
 
+      if (!Array.isArray(users) || users.length === 0) {
+        return jsonResponse({ users: [], students: [], errors: ["No users supplied"] });
+      }
+
       console.log(`[BULK CREATE] Processing ${users?.length || 0} users`);
 
       const processOne = async (u: any) => {
         let userId: string | null = null;
+        let createdAuthUser = false;
         try {
+          const email = String(u?.email || "").trim().toLowerCase();
+          const role = String(u?.role || "");
+          const password = String(u?.password || "");
+          if (!email || !email.includes("@")) {
+            errors.push(`${email || "row"}: valid username/email is required`);
+            return;
+          }
+          if (!password) {
+            errors.push(`${email}: password is required`);
+            return;
+          }
           if (isSchool && !isAdmin && !["teacher", "student"].includes(u.role)) {
-            errors.push(`${u.email}: insufficient permissions for role ${u.role}`);
+            errors.push(`${email}: insufficient permissions for role ${role}`);
             return;
           }
-          if (isTeacher && !isAdmin && !isSchool && u.role !== "student") {
-            errors.push(`${u.email}: teachers can only create students`);
+          if (isTeacher && !isAdmin && !isSchool && role !== "student") {
+            errors.push(`${email}: teachers can only create students`);
             return;
           }
-          if (isTeacher && !isAdmin && !isSchool && u.student) {
+          const studentPayload = u.student ? { ...u.student } : null;
+          if (isTeacher && !isAdmin && !isSchool && studentPayload) {
             if (!teacherRecord) {
-              errors.push(`${u.email}: teacher profile not found`);
+              errors.push(`${email}: teacher profile not found`);
               return;
             }
-            u.student.school_id = teacherRecord.school_id;
-            u.student.teacher_id = teacherRecord.id;
+            studentPayload.school_id = teacherRecord.school_id;
+            studentPayload.teacher_id = teacherRecord.id;
+          }
+          if (role === "student") {
+            const requiredStudentFields = ["school_id", "name", "class", "section", "roll_no"];
+            const missing = requiredStudentFields.filter((key) => !String(studentPayload?.[key] || "").trim());
+            if (!studentPayload || missing.length > 0) {
+              errors.push(`${email}: missing student fields - ${missing.join(", ")}`);
+              return;
+            }
           }
 
           const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-            email: u.email,
-            password: normalizePassword(u.password),
+            email,
+            password: normalizePassword(password),
             email_confirm: true,
             user_metadata: u.metadata || {},
           });
@@ -179,56 +204,60 @@ Deno.serve(async (req) => {
             if (createError?.message?.includes("already been registered")) {
               const existing = await findUserByEmail(supabase, u.email);
               if (!existing) {
-                errors.push(`${u.email}: account exists but could not be loaded`);
+                errors.push(`${email}: account exists but could not be loaded`);
                 return;
               }
               userId = existing.id;
-              await supabase.auth.admin.updateUser(existing.id, { password: normalizePassword(u.password), user_metadata: u.metadata || {} });
+              await supabase.auth.admin.updateUser(existing.id, { password: normalizePassword(password), user_metadata: u.metadata || {} });
             } else {
-              console.log(`[BULK CREATE] Failed: ${u.email} - ${createError?.message}`);
-              errors.push(`${u.email}: ${createError?.message || "create failed"}`);
+              console.log(`[BULK CREATE] Failed: ${email} - ${createError?.message}`);
+              errors.push(`${email}: ${createError?.message || "create failed"}`);
               return;
             }
           } else {
             userId = newUser.user.id;
+            createdAuthUser = true;
           }
 
           const { error: roleError } = await supabase
             .from("user_roles")
-            .upsert({ user_id: userId, role: u.role }, { onConflict: "user_id,role" });
+            .upsert({ user_id: userId, role }, { onConflict: "user_id,role" });
 
           if (roleError) {
-            console.log(`[BULK CREATE] Role failed: ${u.email} - ${roleError.message}`);
-            errors.push(`${u.email}: role assignment failed - ${roleError.message}`);
+            if (createdAuthUser && userId) await supabase.auth.admin.deleteUser(userId);
+            console.log(`[BULK CREATE] Role failed: ${email} - ${roleError.message}`);
+            errors.push(`${email}: role assignment failed - ${roleError.message}`);
             return;
           }
 
-          if (u.role === "student" && u.student) {
+          if (role === "student" && studentPayload) {
             const { data: existingStudent } = await supabase
               .from("students")
               .select("id")
               .eq("user_id", userId)
               .maybeSingle();
             const studentWrite = existingStudent
-              ? supabase.from("students").update({ ...u.student, user_id: userId }).eq("id", existingStudent.id).select().single()
-              : supabase.from("students").insert({ ...u.student, user_id: userId }).select().single();
+              ? supabase.from("students").update({ ...studentPayload, user_id: userId }).eq("id", existingStudent.id).select().single()
+              : supabase.from("students").insert({ ...studentPayload, user_id: userId }).select().single();
             const { data: studentRow, error: studentError } = await studentWrite;
             if (studentError) {
-              errors.push(`${u.email}: student profile failed - ${studentError.message}`);
+              if (createdAuthUser && userId) await supabase.auth.admin.deleteUser(userId);
+              errors.push(`${email}: student profile failed - ${studentError.message}`);
               return;
             }
-            results.push({ ...studentRow, email: u.email });
+            results.push({ ...studentRow, email });
           } else {
-            results.push({ id: userId, email: u.email });
+            results.push({ id: userId, email });
           }
         } catch (e: any) {
-          console.log(`[BULK CREATE] Exception ${u.email}: ${e?.message}`);
-          errors.push(`${u.email}: ${e?.message || "unknown error"}`);
+          console.log(`[BULK CREATE] Exception ${u?.email}: ${e?.message}`);
+          if (createdAuthUser && userId) await supabase.auth.admin.deleteUser(userId);
+          errors.push(`${u?.email || "row"}: ${e?.message || "unknown error"}`);
         }
       };
 
-      // Process in parallel batches of 5 to avoid hitting auth rate limits and edge function timeout
-      const BATCH = 5;
+      // Keep server-side concurrency low; the browser already sends small chunks.
+      const BATCH = 2;
       for (let i = 0; i < (users?.length || 0); i += BATCH) {
         const slice = users.slice(i, i + BATCH);
         await Promise.all(slice.map(processOne));
@@ -236,9 +265,7 @@ Deno.serve(async (req) => {
 
       console.log(`[BULK CREATE] Done: ${results.length} created, ${errors.length} errors`);
 
-      return new Response(JSON.stringify({ users: results, students: results, errors }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ users: results, students: results, errors });
     }
 
 
