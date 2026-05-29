@@ -49,18 +49,38 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
-    // Check caller has admin or school role
+    // Check caller has admin, school or teacher role.
+    // Self-heal: if the user has a row in schools/teachers/students but is missing
+    // the corresponding user_roles entry, infer and upsert it before authorizing.
     const { data: callerRoles } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", caller.id);
-    const roles = (callerRoles || []).map((r: any) => r.role);
-    const isAdmin = roles.includes("admin");
-    const isSchool = roles.includes("school");
-    const isTeacher = roles.includes("teacher");
+    const roles = new Set((callerRoles || []).map((r: any) => r.role));
+
+    if (!roles.has("admin") && !roles.has("school") && !roles.has("teacher") && !roles.has("student")) {
+      const [{ data: tr }, { data: sr }, { data: stu }] = await Promise.all([
+        supabase.from("teachers").select("id, school_id").eq("user_id", caller.id).maybeSingle(),
+        supabase.from("schools").select("id").eq("user_id", caller.id).maybeSingle(),
+        supabase.from("students").select("id").eq("user_id", caller.id).maybeSingle(),
+      ]);
+      const inferred = tr ? "teacher" : sr ? "school" : stu ? "student" : null;
+      if (inferred) {
+        await supabase.from("user_roles").upsert(
+          { user_id: caller.id, role: inferred },
+          { onConflict: "user_id,role" },
+        );
+        roles.add(inferred);
+        console.log(`[SELF-HEAL] Added missing role '${inferred}' for ${caller.email}`);
+      }
+    }
+
+    const isAdmin = roles.has("admin");
+    const isSchool = roles.has("school");
+    const isTeacher = roles.has("teacher");
 
     if (!isAdmin && !isSchool && !isTeacher) {
-      return jsonResponse({ error: "Insufficient permissions" }, 403);
+      return jsonResponse({ error: "Insufficient permissions - no admin/school/teacher role found for this account" }, 403);
     }
 
     // Resolve teacher record (used for scoped permissions below)
@@ -73,6 +93,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
       teacherRecord = tRow as any;
     }
+
 
     const body = await req.json();
     const { action } = body;
