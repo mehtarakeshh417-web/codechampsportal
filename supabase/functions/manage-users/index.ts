@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 const normalizePassword = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
-const BULK_STUDENTS_VERSION = "bulk-students-sync-20260529";
 
 const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -118,131 +117,6 @@ Deno.serve(async (req) => {
       if (roleError) return jsonResponse({ error: `Role assignment failed: ${roleError.message}` }, 400);
 
       return jsonResponse({ user: { id: userId } });
-    }
-
-    if (action === "bulk_create_students_v2" || action === "create_users_bulk") {
-      const users = Array.isArray(body.users) ? body.users : (Array.isArray(body.rows) ? body.rows : (Array.isArray(body.students) ? body.students : []));
-      const requestContext = body.context || {};
-      const explicitSchoolId = requestContext.school_id || requestContext.schoolId || body.school_id || body.schoolId || requestContext.tenant_id || requestContext.tenantId || body.tenant_id || body.tenantId;
-      const explicitTeacherId = requestContext.teacher_id || requestContext.teacherId || body.teacher_id || body.teacherId;
-
-      const results: any[] = [];
-      const errors: string[] = [];
-
-      if (!Array.isArray(users) || users.length === 0) {
-        return jsonResponse({ ok: false, version: BULK_STUDENTS_VERSION, users: [], students: [], errors: ["No users supplied"] });
-      }
-
-      console.log(`[BULK STUDENTS V2] caller=${caller.email} role_gate=disabled count=${users.length}`);
-
-      const processOne = async (u: any) => {
-        let userId: string | null = null;
-        let createdAuthUser = false;
-        try {
-          const email = String(u?.email || "").trim().toLowerCase();
-          const role = String(u?.role || "");
-          const password = String(u?.password || "");
-          if (!email || !email.includes("@")) {
-            errors.push(`${email || "row"}: valid username/email is required`);
-            return;
-          }
-          if (!password) {
-            errors.push(`${email}: password is required`);
-            return;
-          }
-          if (role !== "student") {
-            errors.push(`${email}: bulk upload can only create students`);
-            return;
-          }
-
-          const studentPayload = u.student ? { ...u.student } : null;
-          // Teacher/school callers use the exact same creation path, but server-side profile data wins.
-          if (studentPayload && teacherRecord && !schoolRecord && !isAdmin) {
-            studentPayload.school_id = teacherRecord.school_id;
-            studentPayload.teacher_id = teacherRecord.id;
-          }
-          if (studentPayload && schoolRecord && !isAdmin) {
-            studentPayload.school_id = schoolRecord.id;
-          }
-          if (studentPayload && !studentPayload.school_id && explicitSchoolId) {
-            studentPayload.school_id = explicitSchoolId;
-          }
-          if (studentPayload && !studentPayload.teacher_id && explicitTeacherId) {
-            studentPayload.teacher_id = explicitTeacherId;
-          }
-
-          if (role === "student") {
-            const requiredStudentFields = ["school_id", "name", "class", "section", "roll_no"];
-            const missing = requiredStudentFields.filter((key) => !String(studentPayload?.[key] || "").trim());
-            if (!studentPayload || missing.length > 0) {
-              errors.push(`${email}: missing student fields - ${missing.join(", ")}`);
-              return;
-            }
-          }
-
-          const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-            email, password: normalizePassword(password), email_confirm: true, user_metadata: u.metadata || {},
-          });
-
-          if (createError || !newUser?.user) {
-            if (/already|registered|exists/i.test(createError?.message || "")) {
-              const existing = await findUserByEmail(supabase, email);
-              if (!existing) {
-                errors.push(`${email}: account exists but could not be loaded`);
-                return;
-              }
-              userId = existing.id;
-              await supabase.auth.admin.updateUser(existing.id, { password: normalizePassword(password), user_metadata: u.metadata || {} });
-            } else {
-              console.log(`[BULK STUDENTS V2] auth failed: ${email} - ${createError?.message}`);
-              errors.push(`${email}: ${createError?.message || "create failed"}`);
-              return;
-            }
-          } else {
-            userId = newUser.user.id;
-            createdAuthUser = true;
-          }
-
-          const { error: roleError } = await supabase
-            .from("user_roles")
-            .upsert({ user_id: userId, role }, { onConflict: "user_id,role" });
-          if (roleError) {
-            if (createdAuthUser && userId) await supabase.auth.admin.deleteUser(userId);
-            errors.push(`${email}: role assignment failed - ${roleError.message}`);
-            return;
-          }
-
-          if (role === "student" && studentPayload) {
-            const { data: existingStudent } = await supabase
-              .from("students").select("id").eq("user_id", userId).maybeSingle();
-            const studentWrite = existingStudent
-              ? supabase.from("students").update({ ...studentPayload, user_id: userId }).eq("id", existingStudent.id).select().single()
-              : supabase.from("students").insert({ ...studentPayload, user_id: userId }).select().single();
-            const { data: studentRow, error: studentError } = await studentWrite;
-            if (studentError) {
-              if (createdAuthUser && userId) await supabase.auth.admin.deleteUser(userId);
-              errors.push(`${email}: student profile failed - ${studentError.message}`);
-              return;
-            }
-            results.push({ ...studentRow, email });
-          } else {
-            results.push({ id: userId, email });
-          }
-        } catch (e: any) {
-          console.log(`[BULK STUDENTS V2] exception ${u?.email}: ${e?.message}`);
-          if (createdAuthUser && userId) await supabase.auth.admin.deleteUser(userId);
-          errors.push(`${u?.email || "row"}: ${e?.message || "unknown error"}`);
-        }
-      };
-
-      const BATCH = 2;
-      for (let i = 0; i < (users?.length || 0); i += BATCH) {
-        const slice = users.slice(i, i + BATCH);
-        await Promise.all(slice.map(processOne));
-      }
-
-      console.log(`[BULK STUDENTS V2] done: ${results.length} ok, ${errors.length} errors`);
-      return jsonResponse({ ok: errors.length === 0, success: results.length > 0, version: BULK_STUDENTS_VERSION, rowCount: users.length, modifiedRowCount: results.length, users: results, students: results, errors });
     }
 
     if (action === "delete_user") {
