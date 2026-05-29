@@ -3,9 +3,6 @@ project_id = "hpzatoqdqlmrrdpkzwub"
 [functions.manage-users]
 verify_jwt = false
 
-[functions.bulk-create-students]
-verify_jwt = false
-
 [functions.seed-admin]
 verify_jwt = false
 
