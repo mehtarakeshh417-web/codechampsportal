@@ -232,6 +232,12 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
     try {
       const { data: schoolRecord } = await supabase.from("schools").select("id").eq("user_id", schoolId).maybeSingle();
       const actualSchoolId = schoolRecord?.id || schoolId;
+      const activeContext = {
+        school_id: actualSchoolId,
+        tenant_id: actualSchoolId,
+        role: defaultTeacherId ? "teacher" : "school",
+        teacher_id: defaultTeacherId || null,
+      };
 
       // Prepare complete student records so auth user + student row are created together server-side.
       const usersPayload = validRows.map((row) => {
@@ -260,7 +266,7 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
       const CHUNK = 8;
       for (let i = 0; i < usersPayload.length; i += CHUNK) {
         const slice = usersPayload.slice(i, i + CHUNK);
-        const { data: bulkResult, error: bulkError } = await invokeBulkStudents(slice);
+        const { data: bulkResult, error: bulkError } = await invokeBulkStudents(slice, activeContext);
         if (bulkError) {
           const detail = await getInvokeErrorDetail(bulkError, bulkResult);
           const uploadMessage = detail?.toLowerCase?.().includes("insufficient permissions")
@@ -276,6 +282,10 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
           return;
         }
         createdStudents.push(...(bulkResult?.students || bulkResult?.users || []));
+        queryClient.invalidateQueries({ queryKey: ["students"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboardMetrics"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+        queryClient.invalidateQueries({ queryKey: ["metrics"] });
         (bulkResult?.errors || []).forEach((errorText: string) => {
           const row = validRows.find((r) => errorText.startsWith(usernameToEmail(r.username)));
           newResults.push({ name: row?.name || errorText.split(":")[0], success: false, error: errorText });
@@ -309,7 +319,13 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
     const failCount = newResults.filter((r) => !r.success).length;
     if (successCount > 0) toast.success(`${successCount} student(s) created successfully!`);
     if (failCount > 0) toast.error(`${failCount} student(s) failed.`);
-    if (successCount > 0 || createdStudents.length > 0) onComplete(createdStudents);
+    if (successCount > 0 || createdStudents.length > 0) {
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardMetrics"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["metrics"] });
+      onComplete(createdStudents);
+    }
   };
 
   const downloadResults = () => {
