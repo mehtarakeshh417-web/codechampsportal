@@ -2,7 +2,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-api-version, accept, accept-language",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const normalizePassword = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
@@ -35,9 +36,12 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    const body = await req.json().catch(() => ({}));
+    const { action } = body;
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return jsonResponse({ error: "No authorization header" }, 401);
+      return jsonResponse({ error: "Login required" }, 401);
     }
 
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -77,9 +81,6 @@ Deno.serve(async (req) => {
     const isTeacher = roles.has("teacher") || !!tRow;
     const teacherRecord: { id: string; school_id: string } | null = (tRow as any) || null;
     const schoolRecord: { id: string } | null = (sRow as any) || null;
-
-    const body = await req.json();
-    const { action } = body;
 
     if (action === "create_user") {
       const { email, password, role, metadata } = body;
@@ -129,7 +130,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ ok: false, version: BULK_STUDENTS_VERSION, users: [], students: [], errors: ["No users supplied"] });
       }
 
-      console.log(`[BULK STUDENTS V2] caller=${caller.email} admin=${isAdmin} school=${isSchool} teacher=${isTeacher} count=${users.length}`);
+      console.log(`[BULK STUDENTS V2] caller=${caller.email} role_gate=disabled count=${users.length}`);
 
       const processOne = async (u: any) => {
         let userId: string | null = null;

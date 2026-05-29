@@ -50,6 +50,28 @@ const usernameToEmail = (username: string) => {
 };
 const passwordForAuth = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
 
+const invokeBulkStudents = async (users: any[]) => {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!token) return { data: null, error: { message: "Login expired. Please login again." } };
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/manage-users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+      "apikey": supabaseKey,
+      "x-client-info": "codechamps-bulk-upload",
+    },
+    body: JSON.stringify({ action: "bulk_create_students_v2", users }),
+  });
+  const data = await response.json().catch(() => null);
+  return response.ok ? { data, error: null } : { data, error: { message: data?.error || data?.errors?.join?.("; ") || `HTTP ${response.status}` } };
+};
+
 const getInvokeErrorDetail = async (error: any, data: any) => {
   if (data?.error) return data.error;
   if (data?.errors?.length) return data.errors.join("; ");
@@ -243,15 +265,13 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
       const CHUNK = 8;
       for (let i = 0; i < usersPayload.length; i += CHUNK) {
         const slice = usersPayload.slice(i, i + CHUNK);
-        const { data: bulkResult, error: bulkError } = await supabase.functions.invoke("manage-users", {
-          body: { action: "bulk_create_students_v2", users: slice },
-        });
+        const { data: bulkResult, error: bulkError } = await invokeBulkStudents(slice);
         if (bulkError) {
           const detail = await getInvokeErrorDetail(bulkError, bulkResult);
-          const staleMessage = detail?.toLowerCase?.().includes("insufficient permissions")
-            ? "Bulk upload service is still running an old permission version. Please retry after the latest function deploy finishes."
+          const uploadMessage = detail?.toLowerCase?.().includes("insufficient permissions")
+            ? "Student creation was blocked by the backend. Please retry after the latest update finishes."
             : detail;
-          toast.error(`Bulk creation failed: ${staleMessage}`);
+          toast.error(`Bulk creation failed: ${uploadMessage}`);
           setUploading(false);
           return;
         }
