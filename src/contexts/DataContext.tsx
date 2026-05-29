@@ -205,8 +205,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const school = schools.find(s => s.user_id === data.schoolId);
     const actualSchoolId = school?.id || data.schoolId;
 
-    const { data: result, error } = await supabase.functions.invoke("bulk-create-students", {
-      body: { users: [{
+    const { data: result, error } = await supabase.functions.invoke("manage-users", {
+      body: { action: "bulk_create_students_v2", users: [{
         email: usernameToEmail(username),
         password: passwordForAuth(password),
         role: "student",
