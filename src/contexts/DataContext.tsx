@@ -327,26 +327,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const actual = school?.id || schoolId;
     return loadDeleted(actual);
   }, [schools]);
-
-
-  const getSchoolTeachers = useCallback((schoolId: string) => {
-    const school = schools.find(s => s.user_id === schoolId);
-    const actual = school?.id || schoolId;
-    return teachers.filter(t => t.schoolId === actual);
-  }, [schools, teachers]);
-
-  const getSchoolStudents = useCallback((schoolId: string) => {
-    const school = schools.find(s => s.user_id === schoolId);
-    const actual = school?.id || schoolId;
-    return students.filter(s => s.schoolId === actual);
-  }, [schools, students]);
-
-  const getTeacherStudents = useCallback((teacherId: string) => {
-    const teacher = teachers.find(t => t.user_id === teacherId);
-    const actual = teacher?.id || teacherId;
-    return students.filter(s => s.teacherId === actual);
-  }, [teachers, students]);
-
   return (
     <DataContext.Provider value={{
       schools, teachers, students, loading,
@@ -354,8 +334,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateSchool, getSchool, updateTeacher, updateStudent,
       deleteSchool, deleteTeacher, deleteStudent,
       getSchoolTeachers, getSchoolStudents, getTeacherStudents,
+      getDeletedEntries,
       refreshData: fetchData,
     }}>
+      {children}
+    </DataContext.Provider>
+  );
+
       {children}
     </DataContext.Provider>
   );
