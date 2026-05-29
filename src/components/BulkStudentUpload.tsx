@@ -4,6 +4,7 @@ import { Upload, Download, FileText, X, AlertTriangle, CheckCircle2, Loader2 } f
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 
 interface BulkStudentUploadProps {
@@ -29,8 +30,8 @@ interface ParsedRow {
 }
 
 const CLASS_OPTIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
-const BULK_STUDENTS_VERSION = "bulk-students-v2-20260529";
-const ACCEPTED_BULK_STUDENTS_VERSIONS = new Set([BULK_STUDENTS_VERSION, "bulk-create-students-20260529"]);
+const BULK_STUDENTS_VERSION = "bulk-students-sync-20260529";
+const ACCEPTED_BULK_STUDENTS_VERSIONS = new Set([BULK_STUDENTS_VERSION]);
 
 const toHex = (value: string) => Array.from(new TextEncoder().encode(value))
   .map((byte) => byte.toString(16).padStart(2, "0"))
@@ -50,26 +51,19 @@ const usernameToEmail = (username: string) => {
 };
 const passwordForAuth = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
 
-const invokeBulkStudents = async (users: any[]) => {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData.session?.access_token;
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!token) return { data: null, error: { message: "Login expired. Please login again." } };
-
-  const response = await fetch(`${supabaseUrl}/functions/v1/manage-users`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
-      "apikey": supabaseKey,
-      "x-client-info": "codechamps-bulk-upload",
+const invokeBulkStudents = (users: any[], context: { school_id: string; tenant_id: string; role: string; teacher_id?: string | null }) => {
+  return supabase.functions.invoke("bulk-create-students", {
+    body: {
+      action: "bulk_create_students_v2",
+      users,
+      rows: users,
+      school_id: context.school_id,
+      tenant_id: context.tenant_id,
+      role: context.role,
+      teacher_id: context.teacher_id || null,
+      context,
     },
-    body: JSON.stringify({ action: "bulk_create_students_v2", users }),
   });
-  const data = await response.json().catch(() => null);
-  return response.ok ? { data, error: null } : { data, error: { message: data?.error || data?.errors?.join?.("; ") || `HTTP ${response.status}` } };
 };
 
 const getInvokeErrorDetail = async (error: any, data: any) => {
@@ -107,6 +101,7 @@ const normalizeClass = (raw: string): string => {
 };
 
 const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedClasses, allowedSections, defaultTeacherId }: BulkStudentUploadProps) => {
+  const queryClient = useQueryClient();
   const [show, setShow] = useState(false);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [uploading, setUploading] = useState(false);
