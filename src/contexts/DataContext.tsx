@@ -332,7 +332,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getSchoolStudents = useCallback((schoolId: string) => {
     const school = schools.find(s => s.user_id === schoolId);
     const actual = school?.id || schoolId;
-    return students.filter(s => s.schoolId === actual);
+    return students.filter(s => s.schoolId === actual || s.schoolId === schoolId);
   }, [schools, students]);
 
   const getTeacherStudents = useCallback((teacherId: string) => {
