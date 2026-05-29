@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { createStudentAuthAccount, normalizeClass } from "@/lib/studentAccounts";
 
-interface BulkStudentUploadProps {
+interface ClientStudentBulkUploadProps {
   schoolId: string;
   teachers: { id: string; firstName: string; lastName: string; classes: string[] }[];
   sections: string[];
@@ -37,7 +37,7 @@ const readCell = (row: Record<string, unknown>, ...keys: string[]) => {
 
 const stripContextColumns = (rows: any[]) => rows.map(({ tenant_id, created_by, ...row }) => row);
 
-const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedClasses, allowedSections, defaultTeacherId }: BulkStudentUploadProps) => {
+const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, allowedClasses, allowedSections, defaultTeacherId }: ClientStudentBulkUploadProps) => {
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -244,4 +244,4 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
   );
 };
 
-export default BulkStudentUpload;
+export default ClientStudentBulkUpload;

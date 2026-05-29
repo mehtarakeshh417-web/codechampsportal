@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GraduationCap, Plus, X, Trash2, AlertTriangle, Edit2 } from "lucide-react";
-import BulkStudentUpload from "@/components/BulkStudentUpload";
+import ClientStudentBulkUpload from "@/components/ClientStudentBulkUpload";
 import { toast } from "sonner";
 
 const DEFAULT_SECTIONS = ["A", "B", "C", "D", "E"];
@@ -86,7 +86,7 @@ const TeacherStudents = () => {
           <p className="font-body text-primary-foreground">Add and manage students in your classes</p>
         </div>
         <div className="flex gap-3 flex-wrap">
-          <BulkStudentUpload
+          <ClientStudentBulkUpload
             schoolId={actualSchoolId}
             teachers={[{ id: teacher.id, firstName: teacher.firstName, lastName: teacher.lastName, classes: teacher.classes }]}
             sections={SECTION_OPTIONS}
