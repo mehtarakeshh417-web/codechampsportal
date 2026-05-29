@@ -129,16 +129,6 @@ Deno.serve(async (req) => {
         return jsonResponse({ ok: false, version: BULK_STUDENTS_VERSION, users: [], students: [], errors: ["No users supplied"] });
       }
 
-      if (!isAdmin && !isSchool && !isTeacher) {
-        return jsonResponse({
-          ok: false,
-          version: BULK_STUDENTS_VERSION,
-          users: [],
-          students: [],
-          errors: ["Logged-in user is not linked to a school or teacher profile"],
-        }, 403);
-      }
-
       console.log(`[BULK STUDENTS V2] caller=${caller.email} admin=${isAdmin} school=${isSchool} teacher=${isTeacher} count=${users.length}`);
 
       const processOne = async (u: any) => {
