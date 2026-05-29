@@ -92,6 +92,24 @@ const mapStudent = (s: any): StudentData => ({
   createdAt: s.created_at,
 });
 
+export interface DeletedEntry {
+  id: string;
+  schoolId: string;
+  entryType: "student" | "teacher";
+  displayName: string;
+  username?: string;
+  details: Record<string, any>;
+  deletedAt: string;
+}
+
+const DELETED_KEY = (schoolId: string) => `cc_deleted_entries::${schoolId}`;
+const loadDeleted = (schoolId: string): DeletedEntry[] => {
+  try { return JSON.parse(localStorage.getItem(DELETED_KEY(schoolId)) || "[]"); } catch { return []; }
+};
+const saveDeleted = (schoolId: string, list: DeletedEntry[]) => {
+  try { localStorage.setItem(DELETED_KEY(schoolId), JSON.stringify(list.slice(0, 500))); } catch { /* quota */ }
+};
+
 interface DataContextType {
   schools: SchoolData[];
   teachers: TeacherData[];
@@ -110,8 +128,10 @@ interface DataContextType {
   getSchoolTeachers: (schoolId: string) => TeacherData[];
   getSchoolStudents: (schoolId: string) => StudentData[];
   getTeacherStudents: (teacherId: string) => StudentData[];
+  getDeletedEntries: (schoolId: string) => DeletedEntry[];
   refreshData: () => Promise<void>;
 }
+
 
 const DataContext = createContext<DataContextType | null>(null);
 
