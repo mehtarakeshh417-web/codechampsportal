@@ -26,10 +26,15 @@ const SchoolTeachers = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const schoolId = user?.id || "";
-  const teachers = getSchoolTeachers(schoolId);
+  const allTeachers = getSchoolTeachers(schoolId);
   const schoolStudents = getSchoolStudents(schoolId);
   const school = getSchool(schoolId);
   const SECTION_LIST = school?.sections?.length ? school.sections : DEFAULT_SECTION_LIST;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusId = searchParams.get("focus");
+  const teachers = focusId ? allTeachers.filter((t) => t.id === focusId) : allTeachers;
+  const clearFocus = () => { searchParams.delete("focus"); setSearchParams(searchParams, { replace: true }); };
+
 
   const toggleClassSelection = (cls: string) => {
     setSelectedClasses((prev) => {
