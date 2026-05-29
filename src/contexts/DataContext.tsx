@@ -260,21 +260,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data.teacherId !== undefined) dbData.teacher_id = data.teacherId;
     await supabase.from("students").update(dbData).eq("id", studentId);
     await fetchData();
-  }, [fetchData]);
-
-  const deleteSchool = useCallback(async (schoolId: string): Promise<string[]> => {
-    const school = schools.find(s => s.id === schoolId);
-    const schoolTeachers = teachers.filter(t => t.schoolId === schoolId);
-    const schoolStudents = students.filter(s => s.schoolId === schoolId);
-    const userIds = [school?.user_id, ...schoolTeachers.map(t => t.user_id), ...schoolStudents.map(s => s.user_id)].filter(Boolean) as string[];
-
-    await supabase.from("schools").delete().eq("id", schoolId);
-    if (userIds.length > 0) {
-      await supabase.functions.invoke("manage-users", { body: { action: "delete_users_bulk", user_ids: userIds } });
-    }
-    await fetchData();
-    return [];
-  }, [schools, teachers, students, fetchData]);
+  const logDeletion = useCallback((entryType: "student" | "teacher", schoolId: string, displayName: string, username: string | undefined, details: Record<string, any>) => {
+    if (!schoolId) return;
+    const list = loadDeleted(schoolId);
+    list.unshift({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      schoolId, entryType, displayName, username, details,
+      deletedAt: new Date().toISOString(),
+    });
+    saveDeleted(schoolId, list);
+  }, []);
 
   const deleteTeacher = useCallback(async (teacherId: string): Promise<{ success: boolean; removedUsernames: string[]; error?: string }> => {
     const teacher = teachers.find(t => t.id === teacherId);
@@ -286,9 +281,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (teacher.user_id) {
       await supabase.functions.invoke("manage-users", { body: { action: "delete_user", user_id: teacher.user_id } });
     }
+    logDeletion("teacher", teacher.schoolId, `${teacher.firstName} ${teacher.lastName}`.trim(), teacher.username, {
+      classes: teacher.classes, firstName: teacher.firstName, lastName: teacher.lastName,
+    });
     await fetchData();
     return { success: true, removedUsernames: [] };
-  }, [teachers, students, fetchData]);
+  }, [teachers, students, fetchData, logDeletion]);
 
   const deleteStudent = useCallback(async (studentId: string): Promise<string | null> => {
     const student = students.find(s => s.id === studentId);
@@ -297,8 +295,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (student?.user_id) {
       await supabase.functions.invoke("manage-users", { body: { action: "delete_user", user_id: student.user_id } });
     }
+    if (student) {
+      logDeletion("student", student.schoolId, student.name, student.username, {
+        class: student.class, section: student.section, rollNo: student.rollNo,
+        fatherName: student.fatherName, teacherId: student.teacherId,
+      });
+    }
     return null;
-  }, [students]);
+  }, [students, logDeletion]);
+
+  const getSchoolTeachers = useCallback((schoolId: string) => {
+    const school = schools.find(s => s.user_id === schoolId);
+    const actual = school?.id || schoolId;
+    return teachers.filter(t => t.schoolId === actual);
+  }, [schools, teachers]);
+
+  const getSchoolStudents = useCallback((schoolId: string) => {
+    const school = schools.find(s => s.user_id === schoolId);
+    const actual = school?.id || schoolId;
+    return students.filter(s => s.schoolId === actual);
+  }, [schools, students]);
+
+  const getTeacherStudents = useCallback((teacherId: string) => {
+    const teacher = teachers.find(t => t.user_id === teacherId);
+    const actual = teacher?.id || teacherId;
+    return students.filter(s => s.teacherId === actual);
+  }, [teachers, students]);
+
+  const getDeletedEntries = useCallback((schoolId: string) => {
+    const school = schools.find(s => s.user_id === schoolId);
+    const actual = school?.id || schoolId;
+    return loadDeleted(actual);
+  }, [schools]);
+
 
   const getSchoolTeachers = useCallback((schoolId: string) => {
     const school = schools.find(s => s.user_id === schoolId);
