@@ -129,6 +129,7 @@ interface DataContextType {
   getSchoolStudents: (schoolId: string) => StudentData[];
   getTeacherStudents: (teacherId: string) => StudentData[];
   getDeletedEntries: (schoolId: string) => DeletedEntry[];
+  mergeStudents: (rows: any[]) => void;
   refreshData: () => Promise<void>;
 }
 
@@ -345,6 +346,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const actual = school?.id || schoolId;
     return loadDeleted(actual);
   }, [schools]);
+
+  const mergeStudents = useCallback((rows: any[]) => {
+    if (!rows?.length) return;
+    setStudents((prev) => {
+      const map = new Map(prev.map((s) => [s.id, s]));
+      rows.forEach((r) => {
+        if (!r?.id) return;
+        map.set(r.id, mapStudent(r));
+      });
+      return Array.from(map.values());
+    });
+  }, []);
+
   return (
     <DataContext.Provider value={{
       schools, teachers, students, loading,
@@ -352,7 +366,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateSchool, getSchool, updateTeacher, updateStudent,
       deleteSchool, deleteTeacher, deleteStudent,
       getSchoolTeachers, getSchoolStudents, getTeacherStudents,
-      getDeletedEntries,
+      getDeletedEntries, mergeStudents,
       refreshData: fetchData,
     }}>
       {children}

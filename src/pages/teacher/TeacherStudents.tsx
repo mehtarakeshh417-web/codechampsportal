@@ -13,7 +13,7 @@ const DEFAULT_SECTIONS = ["A", "B", "C", "D", "E"];
 
 const TeacherStudents = () => {
   const { user } = useAuth();
-  const { teachers, schools, addStudent, getTeacherStudents, getSchool, deleteStudent, updateStudent, refreshData } = useData();
+  const { teachers, schools, addStudent, getTeacherStudents, getSchool, deleteStudent, updateStudent, refreshData, mergeStudents } = useData();
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -92,7 +92,8 @@ const TeacherStudents = () => {
             allowedClasses={myClasses}
             allowedSections={SECTION_OPTIONS}
             defaultTeacherId={teacher.id}
-            onComplete={() => refreshData()} />
+            onComplete={(rows) => { mergeStudents(rows || []); refreshData(); }} />
+
 
           <Button variant="hero" size="xl" onClick={() => setShowForm(true)} disabled={myClasses.length === 0}>
             <Plus className="w-6 h-6 mr-2" /> Add Student
