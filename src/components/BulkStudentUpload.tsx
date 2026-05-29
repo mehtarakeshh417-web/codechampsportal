@@ -29,7 +29,8 @@ interface ParsedRow {
 }
 
 const CLASS_OPTIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
-const BULK_STUDENTS_VERSION = "bulk-create-students-20260529";
+const BULK_STUDENTS_VERSION = "bulk-students-v2-20260529";
+const ACCEPTED_BULK_STUDENTS_VERSIONS = new Set([BULK_STUDENTS_VERSION, "bulk-create-students-20260529"]);
 
 const toHex = (value: string) => Array.from(new TextEncoder().encode(value))
   .map((byte) => byte.toString(16).padStart(2, "0"))
@@ -51,6 +52,7 @@ const passwordForAuth = (password: string) => password.length >= 6 ? password : 
 
 const getInvokeErrorDetail = async (error: any, data: any) => {
   if (data?.error) return data.error;
+  if (data?.errors?.length) return data.errors.join("; ");
   const context = error?.context;
   if (context) {
     try {
@@ -241,8 +243,8 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
       const CHUNK = 8;
       for (let i = 0; i < usersPayload.length; i += CHUNK) {
         const slice = usersPayload.slice(i, i + CHUNK);
-        const { data: bulkResult, error: bulkError } = await supabase.functions.invoke("bulk-create-students", {
-          body: { users: slice },
+        const { data: bulkResult, error: bulkError } = await supabase.functions.invoke("manage-users", {
+          body: { action: "bulk_create_students_v2", users: slice },
         });
         if (bulkError) {
           const detail = await getInvokeErrorDetail(bulkError, bulkResult);
@@ -253,7 +255,7 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
           setUploading(false);
           return;
         }
-        if (bulkResult?.version !== BULK_STUDENTS_VERSION) {
+        if (!ACCEPTED_BULK_STUDENTS_VERSIONS.has(bulkResult?.version)) {
           toast.error("Bulk upload service version mismatch. Please retry after the latest function deploy finishes.");
           setUploading(false);
           return;
