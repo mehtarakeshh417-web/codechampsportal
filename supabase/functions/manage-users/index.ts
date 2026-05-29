@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 
 const normalizePassword = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
+const BULK_STUDENTS_VERSION = "bulk-students-v2-20260529";
 
 const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -118,17 +119,17 @@ Deno.serve(async (req) => {
       return jsonResponse({ user: { id: userId } });
     }
 
-    if (action === "create_users_bulk") {
+    if (action === "bulk_create_students_v2" || action === "create_users_bulk") {
       const { users } = body;
 
       const results: any[] = [];
       const errors: string[] = [];
 
       if (!Array.isArray(users) || users.length === 0) {
-        return jsonResponse({ users: [], students: [], errors: ["No users supplied"] });
+        return jsonResponse({ ok: false, version: BULK_STUDENTS_VERSION, users: [], students: [], errors: ["No users supplied"] });
       }
 
-      console.log(`[BULK CREATE] caller=${caller.email} admin=${isAdmin} school=${isSchool} teacher=${isTeacher} count=${users.length}`);
+      console.log(`[BULK STUDENTS V2] caller=${caller.email} admin=${isAdmin} school=${isSchool} teacher=${isTeacher} count=${users.length}`);
 
       const processOne = async (u: any) => {
         let userId: string | null = null;
@@ -151,13 +152,12 @@ Deno.serve(async (req) => {
           }
 
           const studentPayload = u.student ? { ...u.student } : null;
-          // Teacher/school callers use the exact same creation path. If profile rows are available,
-          // lock the payload to that profile; otherwise use the school_id/teacher_id sent by the UI.
-          if (isTeacher && !isAdmin && !isSchool && studentPayload && teacherRecord) {
+          // Teacher/school callers use the exact same creation path, but server-side profile data wins.
+          if (studentPayload && teacherRecord && !schoolRecord && !isAdmin) {
             studentPayload.school_id = teacherRecord.school_id;
             studentPayload.teacher_id = teacherRecord.id;
           }
-          if (isSchool && !isAdmin && studentPayload && schoolRecord) {
+          if (studentPayload && schoolRecord && !isAdmin) {
             studentPayload.school_id = schoolRecord.id;
           }
 
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
               userId = existing.id;
               await supabase.auth.admin.updateUser(existing.id, { password: normalizePassword(password), user_metadata: u.metadata || {} });
             } else {
-              console.log(`[BULK CREATE] auth failed: ${email} - ${createError?.message}`);
+              console.log(`[BULK STUDENTS V2] auth failed: ${email} - ${createError?.message}`);
               errors.push(`${email}: ${createError?.message || "create failed"}`);
               return;
             }
@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
             results.push({ id: userId, email });
           }
         } catch (e: any) {
-          console.log(`[BULK CREATE] exception ${u?.email}: ${e?.message}`);
+          console.log(`[BULK STUDENTS V2] exception ${u?.email}: ${e?.message}`);
           if (createdAuthUser && userId) await supabase.auth.admin.deleteUser(userId);
           errors.push(`${u?.email || "row"}: ${e?.message || "unknown error"}`);
         }
@@ -231,8 +231,8 @@ Deno.serve(async (req) => {
         await Promise.all(slice.map(processOne));
       }
 
-      console.log(`[BULK CREATE] done: ${results.length} ok, ${errors.length} errors`);
-      return jsonResponse({ users: results, students: results, errors });
+      console.log(`[BULK STUDENTS V2] done: ${results.length} ok, ${errors.length} errors`);
+      return jsonResponse({ ok: errors.length === 0, version: BULK_STUDENTS_VERSION, users: results, students: results, errors });
     }
 
     if (action === "delete_user") {

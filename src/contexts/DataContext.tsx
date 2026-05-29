@@ -83,13 +83,13 @@ const mapTeacher = (t: any): TeacherData => ({
   createdAt: t.created_at,
 });
 const mapStudent = (s: any): StudentData => ({
-  id: s.id, user_id: s.user_id, schoolId: s.school_id,
-  teacherId: s.teacher_id || "", name: s.name,
-  fatherName: s.father_name || "", class: s.class || "",
-  section: s.section || "A", rollNo: s.roll_no || "",
-  username: "", password: "",
+  id: s.id, user_id: s.user_id || s.userId, schoolId: s.school_id || s.schoolId || "",
+  teacherId: s.teacher_id || s.teacherId || "", name: s.name || "",
+  fatherName: s.father_name || s.fatherName || "", class: s.class || "",
+  section: s.section || "A", rollNo: s.roll_no || s.rollNo || "",
+  username: s.username || "", password: s.password || "",
   xp: s.xp || 0, progress: s.progress || 0,
-  createdAt: s.created_at,
+  createdAt: s.created_at || s.createdAt || new Date().toISOString(),
 });
 
 export interface DeletedEntry {
@@ -205,8 +205,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const school = schools.find(s => s.user_id === data.schoolId);
     const actualSchoolId = school?.id || data.schoolId;
 
-    const { data: result, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "create_users_bulk", users: [{
+    const { data: result, error } = await supabase.functions.invoke("bulk-create-students", {
+      body: { users: [{
         email: usernameToEmail(username),
         password: passwordForAuth(password),
         role: "student",
@@ -332,7 +332,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getSchoolStudents = useCallback((schoolId: string) => {
     const school = schools.find(s => s.user_id === schoolId);
     const actual = school?.id || schoolId;
-    return students.filter(s => s.schoolId === actual);
+    return students.filter(s => s.schoolId === actual || s.schoolId === schoolId);
   }, [schools, students]);
 
   const getTeacherStudents = useCallback((teacherId: string) => {
@@ -350,14 +350,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const mergeStudents = useCallback((rows: any[]) => {
     if (!rows?.length) return;
     setStudents((prev) => {
-      const map = new Map(prev.map((s) => [s.id || s.user_id || `${s.schoolId}:${s.name}:${s.rollNo}`, s]));
+      const map = new Map<string, StudentData>();
+      prev.forEach((s) => {
+        map.set(s.id || s.user_id || `${s.schoolId}:${s.teacherId}:${s.name}:${s.rollNo}`, s);
+        if (s.user_id) map.set(`user:${s.user_id}`, s);
+      });
       rows.forEach((r) => {
         if (!r) return;
         const mapped = mapStudent(r);
-        const key = mapped.id || mapped.user_id || `${mapped.schoolId}:${mapped.name}:${mapped.rollNo}`;
+        if (!mapped.schoolId || !mapped.name) return;
+        const key = mapped.id || mapped.user_id || `${mapped.schoolId}:${mapped.teacherId}:${mapped.name}:${mapped.rollNo}`;
         map.set(key, mapped);
+        if (mapped.user_id) map.set(`user:${mapped.user_id}`, mapped);
       });
-      return Array.from(map.values());
+      return Array.from(new Map(Array.from(map.values()).map((s) => [s.id || s.user_id || `${s.schoolId}:${s.teacherId}:${s.name}:${s.rollNo}`, s])).values());
     });
   }, []);
 
