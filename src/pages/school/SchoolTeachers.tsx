@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Users, Plus, X, Trash2, Edit2, Check } from "lucide-react";
 import { toast } from "sonner";
 import ExpandableTeacherCard from "@/components/ExpandableTeacherCard";
+
 
 const CLASS_LIST = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 const DEFAULT_SECTION_LIST = ["A", "B", "C", "D", "E"];
