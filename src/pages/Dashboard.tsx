@@ -66,6 +66,8 @@ const schoolRoutes = (
     <Route path="announcements" element={<SchoolAnnouncements />} />
     <Route path="analytics" element={<SchoolAnalytics />} />
     <Route path="settings" element={<SchoolSettings />} />
+    <Route path="deleted" element={<SchoolDeleted />} />
+
   </>
 );
 
