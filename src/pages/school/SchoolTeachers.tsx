@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Users, Plus, X, Trash2, Edit2, Check } from "lucide-react";
 import { toast } from "sonner";
 import ExpandableTeacherCard from "@/components/ExpandableTeacherCard";
+
 
 const CLASS_LIST = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 const DEFAULT_SECTION_LIST = ["A", "B", "C", "D", "E"];
@@ -24,10 +26,15 @@ const SchoolTeachers = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const schoolId = user?.id || "";
-  const teachers = getSchoolTeachers(schoolId);
+  const allTeachers = getSchoolTeachers(schoolId);
   const schoolStudents = getSchoolStudents(schoolId);
   const school = getSchool(schoolId);
   const SECTION_LIST = school?.sections?.length ? school.sections : DEFAULT_SECTION_LIST;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusId = searchParams.get("focus");
+  const teachers = focusId ? allTeachers.filter((t) => t.id === focusId) : allTeachers;
+  const clearFocus = () => { searchParams.delete("focus"); setSearchParams(searchParams, { replace: true }); };
+
 
   const toggleClassSelection = (cls: string) => {
     setSelectedClasses((prev) => {
@@ -209,6 +216,13 @@ const SchoolTeachers = () => {
             </div>
           </form>
         </motion.div>
+      )}
+
+      {focusId && (
+        <div className="mb-4 flex items-center justify-between glass-card p-3">
+          <span className="text-sm text-white/80 font-body">Viewing single teacher profile</span>
+          <Button variant="ghost" size="sm" onClick={clearFocus}>Show all teachers</Button>
+        </div>
       )}
 
       {teachers.length === 0 ? (

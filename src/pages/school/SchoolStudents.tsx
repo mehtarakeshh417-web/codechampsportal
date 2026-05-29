@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GraduationCap, Plus, X, Trash2, AlertTriangle, Edit2 } from "lucide-react";
 import BulkStudentUpload from "@/components/BulkStudentUpload";
+
 import { toast } from "sonner";
 
 const CLASS_OPTIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
@@ -20,12 +22,17 @@ const SchoolStudents = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", fatherName: "", class: "", section: "", rollNo: "", teacherId: "" });
   const [form, setForm] = useState({ name: "", fatherName: "", class: "", section: "", rollNo: "", teacherId: "", username: "", password: "" });
-
   const schoolId = user?.id || "";
-  const students = getSchoolStudents(schoolId);
+  const allStudents = getSchoolStudents(schoolId);
   const teachers = getSchoolTeachers(schoolId);
   const school = getSchool(schoolId);
   const SECTION_OPTIONS = school?.sections?.length ? school.sections : DEFAULT_SECTIONS;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusId = searchParams.get("focus");
+  const students = focusId ? allStudents.filter((s) => s.id === focusId) : allStudents;
+  const clearFocus = () => { searchParams.delete("focus"); setSearchParams(searchParams, { replace: true }); };
+
+
 
   const filteredTeachers = useMemo(() => {
     if (!form.class) return [];
@@ -167,7 +174,15 @@ const SchoolStudents = () => {
         </motion.div>
       )}
 
+      {focusId && (
+        <div className="mb-4 flex items-center justify-between glass-card p-3">
+          <span className="text-sm text-white/80 font-body">Viewing single student profile</span>
+          <Button variant="ghost" size="sm" onClick={clearFocus}>Show all students</Button>
+        </div>
+      )}
+
       {students.length === 0 ? (
+
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-12 text-center">
           <GraduationCap className="w-16 h-16 text-white/30 mx-auto mb-4" />
           <p className="text-white/50 font-body">No students enrolled yet</p>

@@ -7,8 +7,9 @@ import NotificationBell from "@/components/NotificationBell";
 import dashboardBg from "@/assets/dashboard-bg.jpg";
 import {
   LayoutDashboard, School, Users, BookOpen, Trophy, Settings, LogOut, GraduationCap,
-  BarChart3, Code, FileText, Gamepad2, Award, UserCircle, Menu, X, CalendarDays, MessageSquare, Keyboard, Megaphone, Layers
+  BarChart3, Code, FileText, Gamepad2, Award, UserCircle, Menu, X, CalendarDays, MessageSquare, Keyboard, Megaphone, Layers, Trash2
 } from "lucide-react";
+
 import AiTutorChat from "@/components/AiTutorChat";
 
 interface NavItem {
@@ -34,6 +35,8 @@ const navConfig: Record<UserRole, NavItem[]> = {
     { icon: BarChart3, label: "Analytics", path: "/dashboard/analytics" },
     { icon: Megaphone, label: "Announcements", path: "/dashboard/announcements" },
     { icon: Settings, label: "Settings", path: "/dashboard/settings" },
+    { icon: Trash2, label: "Deleted Entries", path: "/dashboard/deleted" },
+
   ],
   teacher: [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },

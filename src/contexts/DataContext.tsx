@@ -92,6 +92,24 @@ const mapStudent = (s: any): StudentData => ({
   createdAt: s.created_at,
 });
 
+export interface DeletedEntry {
+  id: string;
+  schoolId: string;
+  entryType: "student" | "teacher";
+  displayName: string;
+  username?: string;
+  details: Record<string, any>;
+  deletedAt: string;
+}
+
+const DELETED_KEY = (schoolId: string) => `cc_deleted_entries::${schoolId}`;
+const loadDeleted = (schoolId: string): DeletedEntry[] => {
+  try { return JSON.parse(localStorage.getItem(DELETED_KEY(schoolId)) || "[]"); } catch { return []; }
+};
+const saveDeleted = (schoolId: string, list: DeletedEntry[]) => {
+  try { localStorage.setItem(DELETED_KEY(schoolId), JSON.stringify(list.slice(0, 500))); } catch { /* quota */ }
+};
+
 interface DataContextType {
   schools: SchoolData[];
   teachers: TeacherData[];
@@ -110,8 +128,10 @@ interface DataContextType {
   getSchoolTeachers: (schoolId: string) => TeacherData[];
   getSchoolStudents: (schoolId: string) => StudentData[];
   getTeacherStudents: (teacherId: string) => StudentData[];
+  getDeletedEntries: (schoolId: string) => DeletedEntry[];
   refreshData: () => Promise<void>;
 }
+
 
 const DataContext = createContext<DataContextType | null>(null);
 
@@ -242,6 +262,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await fetchData();
   }, [fetchData]);
 
+  const logDeletion = useCallback((entryType: "student" | "teacher", schoolId: string, displayName: string, username: string | undefined, details: Record<string, any>) => {
+
+    if (!schoolId) return;
+    const list = loadDeleted(schoolId);
+    list.unshift({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      schoolId, entryType, displayName, username, details,
+      deletedAt: new Date().toISOString(),
+    });
+    saveDeleted(schoolId, list);
+  }, []);
+
   const deleteSchool = useCallback(async (schoolId: string): Promise<string[]> => {
     const school = schools.find(s => s.id === schoolId);
     const schoolTeachers = teachers.filter(t => t.schoolId === schoolId);
@@ -256,6 +288,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return [];
   }, [schools, teachers, students, fetchData]);
 
+
   const deleteTeacher = useCallback(async (teacherId: string): Promise<{ success: boolean; removedUsernames: string[]; error?: string }> => {
     const teacher = teachers.find(t => t.id === teacherId);
     if (!teacher) return { success: false, removedUsernames: [], error: "Teacher not found" };
@@ -266,9 +299,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (teacher.user_id) {
       await supabase.functions.invoke("manage-users", { body: { action: "delete_user", user_id: teacher.user_id } });
     }
+    logDeletion("teacher", teacher.schoolId, `${teacher.firstName} ${teacher.lastName}`.trim(), teacher.username, {
+      classes: teacher.classes, firstName: teacher.firstName, lastName: teacher.lastName,
+    });
     await fetchData();
     return { success: true, removedUsernames: [] };
-  }, [teachers, students, fetchData]);
+  }, [teachers, students, fetchData, logDeletion]);
 
   const deleteStudent = useCallback(async (studentId: string): Promise<string | null> => {
     const student = students.find(s => s.id === studentId);
@@ -277,8 +313,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (student?.user_id) {
       await supabase.functions.invoke("manage-users", { body: { action: "delete_user", user_id: student.user_id } });
     }
+    if (student) {
+      logDeletion("student", student.schoolId, student.name, student.username, {
+        class: student.class, section: student.section, rollNo: student.rollNo,
+        fatherName: student.fatherName, teacherId: student.teacherId,
+      });
+    }
     return null;
-  }, [students]);
+  }, [students, logDeletion]);
 
   const getSchoolTeachers = useCallback((schoolId: string) => {
     const school = schools.find(s => s.user_id === schoolId);
@@ -298,6 +340,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return students.filter(s => s.teacherId === actual);
   }, [teachers, students]);
 
+  const getDeletedEntries = useCallback((schoolId: string) => {
+    const school = schools.find(s => s.user_id === schoolId);
+    const actual = school?.id || schoolId;
+    return loadDeleted(actual);
+  }, [schools]);
   return (
     <DataContext.Provider value={{
       schools, teachers, students, loading,
@@ -305,12 +352,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateSchool, getSchool, updateTeacher, updateStudent,
       deleteSchool, deleteTeacher, deleteStudent,
       getSchoolTeachers, getSchoolStudents, getTeacherStudents,
+      getDeletedEntries,
       refreshData: fetchData,
     }}>
       {children}
     </DataContext.Provider>
   );
 };
+
 
 export const useData = () => {
   const ctx = useContext(DataContext);
