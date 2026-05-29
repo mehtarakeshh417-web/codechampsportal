@@ -1,20 +1,17 @@
-## Plan
+## Root cause
 
-1. **Fix the actual permission gate in `manage-users`**
-   - Change teacher authorization so a logged-in teacher is allowed to run `create_users_bulk` for students even if their `user_roles` row is missing or stale.
-   - Resolve the teacher profile from `teachers.user_id = auth.uid()` first, then treat that profile as permission to create students in the same school.
-   - Keep teachers restricted to student creation only; no teacher creation/admin access.
+`supabase/functions/manage-users/index.ts` contains a duplicated authentication block (lines 51–64 repeat lines 37–50). This redeclares `authHeader`, `anonKey`, `callerClient`, and `caller` with `const` in the same scope, which is a TypeScript/Deno syntax error.
 
-2. **Make teacher bulk upload behave like school bulk upload**
-   - In the bulk create path, force each teacher-uploaded student to the teacher’s own `school_id` and `teacher_id` server-side.
-   - Ignore/override any client-sent school or teacher IDs for teacher users so the permission check is safe and consistent.
+Because the file fails to parse, the edge function never redeploys with the new teacher-aware permission logic. Teacher requests keep hitting the **previously deployed** version of the function, which still returns the generic `Insufficient permissions` error — exactly what the screenshot shows.
 
-3. **Add a safety database migration**
-   - Ensure `authenticated` and `service_role` have the needed table grants for `students`, `teachers`, `schools`, and `user_roles`.
-   - Add/replace a clear teacher insert policy on `students` allowing teachers to insert students assigned to their own teacher record.
+All the prior "fix the teacher permission" edits were correct in intent but never reached production because of this dangling duplicate block.
 
-4. **Improve the error message if something still blocks creation**
-   - Return a specific reason like “teacher profile not found” or “teacher can only create students” instead of the generic “Insufficient permissions”.
+## Fix
 
-5. **Validate the flow**
-   - Check the updated function and migration for correct permission logic and make sure the teacher bulk-upload request path can create auth users plus student rows.
+1. **Delete the duplicate authentication block (lines 51–64)** in `supabase/functions/manage-users/index.ts` so the file parses and deploys.
+2. **Verify deployment** by triggering a teacher bulk upload again. The new code path (profile-first authorization via the `teachers` table) will then run and allow the teacher to create students.
+3. **No other code changes needed** — the rest of the file (parallel role/profile lookup, self-heal of `user_roles`, `isTeacher = roles.has("teacher") || !!tRow`, and the `create_users_bulk` branch that scopes `school_id`/`teacher_id` from `teacherRecord`) is already correct.
+
+## Why earlier attempts didn't take effect
+
+Each previous edit appended new logic above the existing block but left the old auth block in place, producing the duplicate `const` declarations. The function silently kept serving the last successfully deployed version, so behavior never changed for teachers regardless of what we added.
