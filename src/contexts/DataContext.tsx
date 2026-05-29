@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { createStudentAuthAccount } from "@/lib/studentAccounts";
 
 export interface SchoolData {
   id: string;
@@ -138,6 +140,7 @@ const DataContext = createContext<DataContextType | null>(null);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [schools, setSchools] = useState<SchoolData[]>([]);
   const [teachers, setTeachers] = useState<TeacherData[]>([]);
   const [students, setStudents] = useState<StudentData[]>([]);
@@ -202,41 +205,50 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addStudent = useCallback(async (data: { name: string; fatherName: string; class: string; section: string; rollNo: string; teacherId: string; schoolId: string }, customUsername?: string, customPassword?: string): Promise<StudentData | null> => {
     const username = customUsername || generateUsername("std", data.name, Date.now());
     const password = customPassword || generatePassword();
-    const school = schools.find(s => s.user_id === data.schoolId);
-    const actualSchoolId = school?.id || data.schoolId;
+    const activeTeacher = teachers.find(t => t.user_id === user?.id || t.id === user?.id);
+    const school = schools.find(s => s.id === data.schoolId || s.user_id === data.schoolId || s.id === activeTeacher?.schoolId);
+    const actualSchoolId = activeTeacher?.schoolId || school?.id || data.schoolId;
+    const actualTeacherId = data.teacherId || activeTeacher?.id || null;
 
-    const { data: result, error } = await supabase.functions.invoke("bulk-create-students", {
-      body: {
-        action: "bulk_create_students_v2",
+    try {
+      const authAccount = await createStudentAuthAccount(username, password, data.name);
+      const { data: sessionData } = await supabase.auth.getUser();
+      const rowWithContext = {
+        user_id: authAccount.userId,
         school_id: actualSchoolId,
         tenant_id: actualSchoolId,
-        role: user?.role || "school",
-        teacher_id: data.teacherId || null,
-        context: { school_id: actualSchoolId, tenant_id: actualSchoolId, role: user?.role || "school", teacher_id: data.teacherId || null },
-        users: [{
-        email: usernameToEmail(username),
-        password: passwordForAuth(password),
-        role: "student",
-        metadata: { username, display_name: data.name },
-        student: {
-          school_id: actualSchoolId,
-          teacher_id: data.teacherId || null,
-          name: data.name,
-          father_name: data.fatherName,
-          class: data.class,
-          section: data.section,
-          roll_no: data.rollNo,
-        },
-      }] },
-    });
-    if (error || result?.error || result?.errors?.length) { console.error("Create student failed:", error || result?.error || result?.errors); return null; }
-    const student = result?.students?.[0] || result?.users?.[0];
-    if (!student?.id) { console.error("Create student failed: missing student row"); return null; }
+        created_by: sessionData.user?.id || user?.id,
+        teacher_id: actualTeacherId,
+        name: data.name,
+        father_name: data.fatherName,
+        class: data.class,
+        section: data.section,
+        roll_no: data.rollNo,
+        xp: 0,
+        progress: 0,
+      };
 
-    const newStudent = { ...mapStudent(student), username, password };
-    setStudents(prev => [...prev, newStudent]);
-    return newStudent;
-  }, [schools, user]);
+      let insertResult = await supabase.from("students").insert(rowWithContext as any).select().single();
+      if (insertResult.error && /tenant_id|created_by|schema cache/i.test(insertResult.error.message || "")) {
+        const { tenant_id, created_by, ...row } = rowWithContext;
+        insertResult = await supabase.from("students").insert(row as any).select().single();
+      }
+      if (insertResult.error || !insertResult.data) throw insertResult.error || new Error("Student profile was not created");
+
+      await supabase.from("user_roles").upsert({ user_id: authAccount.userId, role: "student" }, { onConflict: "user_id,role" });
+      const newStudent = { ...mapStudent(insertResult.data), username, password };
+      setStudents(prev => [...prev, newStudent]);
+      await queryClient.invalidateQueries({ queryKey: ["students"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboardMetrics"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+      await queryClient.invalidateQueries({ queryKey: ["metrics"] });
+      await fetchData();
+      return newStudent;
+    } catch (error) {
+      console.error("Create student failed:", error);
+      return null;
+    }
+  }, [schools, teachers, user, queryClient, fetchData]);
 
   const updateSchool = useCallback(async (schoolId: string, data: Partial<Pick<SchoolData, "name" | "address" | "state" | "city" | "phone" | "sections">>) => {
     const school = schools.find(s => s.user_id === schoolId);
