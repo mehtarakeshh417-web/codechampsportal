@@ -10,7 +10,7 @@ interface BulkStudentUploadProps {
   schoolId: string;
   teachers: { id: string; firstName: string; lastName: string; classes: string[] }[];
   sections: string[];
-  onComplete: () => void;
+  onComplete: (createdRows?: any[]) => void;
   allowedClasses?: string[];
   allowedSections?: string[];
   defaultTeacherId?: string;
@@ -274,7 +274,7 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
     const failCount = newResults.filter((r) => !r.success).length;
     if (successCount > 0) toast.success(`${successCount} student(s) created successfully!`);
     if (failCount > 0) toast.error(`${failCount} student(s) failed.`);
-    if (successCount > 0) onComplete();
+    if (successCount > 0 || createdStudents.length > 0) onComplete(createdStudents);
   };
 
   const downloadResults = () => {
