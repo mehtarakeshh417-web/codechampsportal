@@ -48,51 +48,57 @@ Deno.serve(async (req) => {
     if (callerError || !caller) {
       return jsonResponse({ error: "Unauthorized" }, 401);
     }
-
-    // Check caller has admin, school or teacher role.
-    // Self-heal: if the user has a row in schools/teachers/students but is missing
-    // the corresponding user_roles entry, infer and upsert it before authorizing.
-    const { data: callerRoles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id);
-    const roles = new Set((callerRoles || []).map((r: any) => r.role));
-
-    if (!roles.has("admin") && !roles.has("school") && !roles.has("teacher") && !roles.has("student")) {
-      const [{ data: tr }, { data: sr }, { data: stu }] = await Promise.all([
-        supabase.from("teachers").select("id, school_id").eq("user_id", caller.id).maybeSingle(),
-        supabase.from("schools").select("id").eq("user_id", caller.id).maybeSingle(),
-        supabase.from("students").select("id").eq("user_id", caller.id).maybeSingle(),
-      ]);
-      const inferred = tr ? "teacher" : sr ? "school" : stu ? "student" : null;
-      if (inferred) {
-        await supabase.from("user_roles").upsert(
-          { user_id: caller.id, role: inferred },
-          { onConflict: "user_id,role" },
-        );
-        roles.add(inferred);
-        console.log(`[SELF-HEAL] Added missing role '${inferred}' for ${caller.email}`);
-      }
+    // Verify the caller is authenticated
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return jsonResponse({ error: "No authorization header" }, 401);
     }
 
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user: caller }, error: callerError } = await callerClient.auth.getUser();
+    if (callerError || !caller) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+
+    // Load all signals in parallel: existing roles + direct profile rows.
+    // We treat presence of a teachers/schools/students row as authoritative,
+    // regardless of whether user_roles has caught up.
+    const [{ data: callerRoles }, { data: tRow }, { data: sRow }, { data: stRow }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", caller.id),
+      supabase.from("teachers").select("id, school_id").eq("user_id", caller.id).maybeSingle(),
+      supabase.from("schools").select("id").eq("user_id", caller.id).maybeSingle(),
+      supabase.from("students").select("id").eq("user_id", caller.id).maybeSingle(),
+    ]);
+    const roles = new Set((callerRoles || []).map((r: any) => r.role));
+
+    // Self-heal: ensure user_roles reflects the profile rows that exist.
+    const ensureRole = async (role: string) => {
+      if (!roles.has(role)) {
+        await supabase.from("user_roles").upsert(
+          { user_id: caller.id, role },
+          { onConflict: "user_id,role" },
+        );
+        roles.add(role);
+      }
+    };
+    if (tRow) await ensureRole("teacher");
+    if (sRow) await ensureRole("school");
+    if (stRow) await ensureRole("student");
+
     const isAdmin = roles.has("admin");
-    const isSchool = roles.has("school");
-    const isTeacher = roles.has("teacher");
+    const isSchool = roles.has("school") || !!sRow;
+    const isTeacher = roles.has("teacher") || !!tRow;
 
     if (!isAdmin && !isSchool && !isTeacher) {
-      return jsonResponse({ error: "Insufficient permissions - no admin/school/teacher role found for this account" }, 403);
+      return jsonResponse({ error: "Insufficient permissions - no admin/school/teacher profile found for this account" }, 403);
     }
 
     // Resolve teacher record (used for scoped permissions below)
-    let teacherRecord: { id: string; school_id: string } | null = null;
-    if (isTeacher && !isAdmin && !isSchool) {
-      const { data: tRow } = await supabase
-        .from("teachers")
-        .select("id, school_id")
-        .eq("user_id", caller.id)
-        .maybeSingle();
-      teacherRecord = tRow as any;
-    }
+    const teacherRecord: { id: string; school_id: string } | null = (tRow as any) || null;
+
 
 
     const body = await req.json();
