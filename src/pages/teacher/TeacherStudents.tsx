@@ -202,7 +202,6 @@ const TeacherStudents = () => {
                 </div>
               ) : (
 
-              ) : (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <span className="font-body font-bold text-white">{s.name}</span>

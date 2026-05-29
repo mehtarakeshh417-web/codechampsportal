@@ -17,9 +17,8 @@ const SchoolTeachers = () => {
   const { addTeacher, getSchoolTeachers, getSchoolStudents, deleteTeacher, updateTeacher, getSchool } = useData();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editSelectedClasses, setEditSelectedClasses] = useState<Record<string, string[]>>({});
   const [editForm, setEditForm] = useState({ firstName: "", lastName: "" });
-
+  const [editSelectedClasses, setEditSelectedClasses] = useState<Record<string, string[]>>({});
   const [form, setForm] = useState({ firstName: "", lastName: "", username: "", password: "" });
   const [selectedClasses, setSelectedClasses] = useState<Record<string, string[]>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,7 +32,7 @@ const SchoolTeachers = () => {
   const toggleClassSelection = (cls: string) => {
     setSelectedClasses((prev) => {
       const updated = { ...prev };
-      if (updated[cls]) {delete updated[cls];} else {updated[cls] = SECTION_LIST[0] ? [SECTION_LIST[0]] : [];}
+      if (updated[cls]) { delete updated[cls]; } else { updated[cls] = SECTION_LIST[0] ? [SECTION_LIST[0]] : []; }
       return updated;
     });
   };
@@ -44,8 +43,8 @@ const SchoolTeachers = () => {
       const sections = updated[cls] || [];
       if (sections.includes(section)) {
         const filtered = sections.filter((s) => s !== section);
-        if (filtered.length === 0) {delete updated[cls];} else {updated[cls] = filtered;}
-      } else {updated[cls] = [...sections, section];}
+        if (filtered.length === 0) { delete updated[cls]; } else { updated[cls] = filtered; }
+      } else { updated[cls] = [...sections, section]; }
       return updated;
     });
   };
@@ -78,9 +77,7 @@ const SchoolTeachers = () => {
       return;
     }
     setIsSubmitting(true);
-    const customUsername = form.username.trim();
-    const customPassword = form.password.trim();
-    const teacher = await addTeacher({ firstName: form.firstName, lastName: form.lastName, classes: classStrings, schoolId }, customUsername, customPassword);
+    const teacher = await addTeacher({ firstName: form.firstName, lastName: form.lastName, classes: classStrings, schoolId }, form.username.trim(), form.password.trim());
     if (teacher) {
       toast.success(`Teacher created! Username: ${teacher.username} | Password: ${teacher.password}`);
       setForm({ firstName: "", lastName: "", username: "", password: "" });
@@ -95,10 +92,7 @@ const SchoolTeachers = () => {
   const handleDelete = async (teacherId: string, teacherName: string) => {
     if (!confirm(`Delete teacher "${teacherName}"? Students assigned to this teacher must be reassigned first.`)) return;
     const result = await deleteTeacher(teacherId);
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
+    if (!result.success) { toast.error(result.error); return; }
     toast.success(`Teacher "${teacherName}" deleted.`);
   };
 
@@ -110,36 +104,32 @@ const SchoolTeachers = () => {
 
   const toggleEditClass = (cls: string) => {
     setEditSelectedClasses((prev) => {
-      const next = { ...prev };
-      if (next[cls]) delete next[cls];
-      else next[cls] = SECTION_LIST[0] ? [SECTION_LIST[0]] : [];
-      return next;
+      const n = { ...prev };
+      if (n[cls]) delete n[cls];
+      else n[cls] = SECTION_LIST[0] ? [SECTION_LIST[0]] : [];
+      return n;
     });
   };
 
   const toggleEditSection = (cls: string, section: string) => {
     setEditSelectedClasses((prev) => {
-      const next = { ...prev };
-      const list = next[cls] || [];
+      const n = { ...prev };
+      const list = n[cls] || [];
       if (list.includes(section)) {
-        const filtered = list.filter((s) => s !== section);
-        if (filtered.length === 0) delete next[cls]; else next[cls] = filtered;
-      } else next[cls] = [...list, section];
-      return next;
+        const f = list.filter((s) => s !== section);
+        if (f.length === 0) delete n[cls]; else n[cls] = f;
+      } else n[cls] = [...list, section];
+      return n;
     });
   };
 
   const saveEdit = async (teacherId: string) => {
-    if (!editForm.firstName || !editForm.lastName) {
-      toast.error("Name fields cannot be empty");
-      return;
-    }
+    if (!editForm.firstName || !editForm.lastName) { toast.error("Name fields cannot be empty"); return; }
     const classStrings = getClassStrings(editSelectedClasses);
     await updateTeacher(teacherId, { firstName: editForm.firstName, lastName: editForm.lastName, classes: classStrings });
     toast.success("Teacher updated.");
     setEditingId(null);
   };
-
 
   const formatClassDisplay = (classes: string[]) => {
     const grouped = parseClassStrings(classes);
@@ -156,8 +146,8 @@ const SchoolTeachers = () => {
         <Button variant="hero" size="lg" onClick={() => setShowForm(true)}><Plus className="w-5 h-5 mr-2" /> Add Teacher</Button>
       </motion.div>
 
-      {showForm &&
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 mb-8">
+      {showForm && (
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-lg font-bold text-white">New Teacher</h2>
             <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}><X className="w-5 h-5" /></Button>
@@ -183,81 +173,55 @@ const SchoolTeachers = () => {
                 <Input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Enter password" className="bg-white/10 border-white/20 text-white placeholder:text-white/40" required />
               </div>
             </div>
-
             <div className="space-y-3">
               <Label className="text-white/80 font-body font-medium">Assign Classes & Sections *</Label>
               <div className="space-y-2">
                 {CLASS_LIST.map((cls) => {
-                const isSelected = !!selectedClasses[cls];
-                return (
-                  <div key={cls} className={`rounded-xl border p-3 transition-all ${isSelected ? "border-primary/40 bg-primary/5" : "border-white/10 bg-white/5"}`}>
+                  const isSelected = !!selectedClasses[cls];
+                  return (
+                    <div key={cls} className={`rounded-xl border p-3 transition-all ${isSelected ? "border-primary/40 bg-primary/5" : "border-white/10 bg-white/5"}`}>
                       <div className="flex items-center gap-3">
-                        <button type="button" onClick={() => toggleClassSelection(cls)}
-                      className={`w-6 h-6 rounded-md border flex items-center justify-center transition-all ${isSelected ? "bg-primary border-primary text-white" : "border-white/30"}`}>
+                        <button type="button" onClick={() => toggleClassSelection(cls)} className={`w-6 h-6 rounded-md border flex items-center justify-center transition-all ${isSelected ? "bg-primary border-primary text-white" : "border-white/30"}`}>
                           {isSelected && <Check className="w-4 h-4" />}
                         </button>
                         <span className="font-body text-sm text-white/90 font-medium">Class {cls}</span>
-                        {isSelected &&
-                      <div className="flex gap-1.5 ml-auto">
+                        {isSelected && (
+                          <div className="flex gap-1.5 ml-auto">
                             {SECTION_LIST.map((sec) => {
-                          const secSelected = selectedClasses[cls]?.includes(sec);
-                          return (
-                            <button key={sec} type="button" onClick={() => toggleSection(cls, sec)}
-                            className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${secSelected ? "bg-neon-green/20 text-neon-green border border-neon-green/40" : "bg-white/10 text-white/50 border border-white/15 hover:bg-white/15"}`}>
+                              const secSelected = selectedClasses[cls]?.includes(sec);
+                              return (
+                                <button key={sec} type="button" onClick={() => toggleSection(cls, sec)} className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${secSelected ? "bg-neon-green/20 text-neon-green border border-neon-green/40" : "bg-white/10 text-white/50 border border-white/15 hover:bg-white/15"}`}>
                                   {sec}
-                                </button>);
-
-                        })}
+                                </button>
+                              );
+                            })}
                           </div>
-                      }
+                        )}
                       </div>
-                    </div>);
-
-              })}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-
             <div className="flex justify-end gap-3 mt-4">
-              <Button type="button" variant="ghost" onClick={() => {setShowForm(false);setSelectedClasses({});}}>Cancel</Button>
+              <Button type="button" variant="ghost" onClick={() => { setShowForm(false); setSelectedClasses({}); }}>Cancel</Button>
               <Button type="submit" variant="hero" disabled={isSubmitting}>{isSubmitting ? "Creating..." : "Create Teacher"}</Button>
             </div>
           </form>
         </motion.div>
-      }
+      )}
 
-      {teachers.length === 0 ?
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-12 text-center">
+      {teachers.length === 0 ? (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-12 text-center">
           <Users className="w-16 h-16 text-white/30 mx-auto mb-4" />
           <p className="text-white/50 font-body">No teachers added yet</p>
-        </motion.div> :
-
-      <div className="space-y-3">
-          {teachers.map((t, i) =>
-        <motion.div key={t.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
-              {editingId === t.id ?
-          <div className="glass-card p-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input value={editForm.firstName} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} className="bg-white/10 border-white/20 text-white" />
-                    <Input value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} className="bg-white/10 border-white/20 text-white" />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="hero" onClick={() => saveEdit(t.id)}>Save</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
-                  </div>
-                </div> :
-
-          <ExpandableTeacherCard
-            teacher={t}
-            students={schoolStudents}
-            formatClassDisplay={formatClassDisplay}
-            actions={
-            <>
-                      <Button variant="ghost" size="icon" className="text-white/30 hover:text-neon-blue shrink-0" onClick={() => startEdit(t)}>
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-white/30 hover:text-destructive shrink-0" onClick={() => handleDelete(t.id, `${t.firstName} ${t.lastName}`)}>
-              {editingId === t.id ?
-          <div className="glass-card p-4 space-y-4">
+        </motion.div>
+      ) : (
+        <div className="space-y-3">
+          {teachers.map((t, i) => (
+            <motion.div key={t.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
+              {editingId === t.id ? (
+                <div className="glass-card p-4 space-y-4">
                   <div className="grid md:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-white/70 text-xs">First Name</Label>
@@ -300,14 +264,14 @@ const SchoolTeachers = () => {
                     <Button size="sm" variant="hero" onClick={() => saveEdit(t.id)}>Save</Button>
                     <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
                   </div>
-                </div> :
-
-          <ExpandableTeacherCard
-            teacher={t}
-            students={schoolStudents}
-            formatClassDisplay={formatClassDisplay}
-            actions={
-            <>
+                </div>
+              ) : (
+                <ExpandableTeacherCard
+                  teacher={t}
+                  students={schoolStudents}
+                  formatClassDisplay={formatClassDisplay}
+                  actions={
+                    <>
                       <Button variant="ghost" size="icon" className="text-white/30 hover:text-neon-blue shrink-0" onClick={() => startEdit(t)}>
                         <Edit2 className="w-4 h-4" />
                       </Button>
@@ -315,11 +279,15 @@ const SchoolTeachers = () => {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </>
-            } />
-
-          }
-
-
+                  }
+                />
+              )}
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default SchoolTeachers;
