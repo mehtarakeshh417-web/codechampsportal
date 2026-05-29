@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
         });
 
         if (createError || !newUser?.user) {
-          if (createError?.message?.includes("already been registered")) {
+          if (/already|registered|exists/i.test(createError?.message || "")) {
             const existing = await findUserByEmail(adminClient, email);
             if (!existing) throw new Error("account exists but could not be loaded");
             userId = existing.id;
