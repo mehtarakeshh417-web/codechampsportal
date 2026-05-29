@@ -77,7 +77,8 @@ Deno.serve(async (req) => {
         : adminClient.from("students").insert(row).select().single();
       let result = await execute(payload);
       if (result.error && "tenant_id" in payload && /tenant_id/i.test(result.error.message || "")) {
-        const { tenant_id, ...withoutTenant } = payload;
+        const withoutTenant = { ...payload };
+        delete withoutTenant.tenant_id;
         result = await execute(withoutTenant);
       }
       return result;
