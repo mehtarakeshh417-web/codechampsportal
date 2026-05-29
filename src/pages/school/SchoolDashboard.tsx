@@ -49,7 +49,8 @@ const SchoolDashboard = () => {
           <p className="text-white/80 text-sm font-body font-semibold">No students yet</p> :
 
           <div className="space-y-2">
-              {students.map((s) =>
+            <div key={s.id} className="flex items-center justify-between py-1 cursor-pointer hover:bg-white/5 rounded px-2 -mx-2" onClick={() => navigate(`/dashboard/students?focus=${s.id}`)}>
+
             <div key={s.id} className="flex items-center justify-between py-1 cursor-pointer hover:bg-white/5 rounded px-2 -mx-2" onClick={() => navigate("/dashboard/students")}>
                   <span className="text-sm text-white font-body font-semibold">{s.name}</span>
                   <span className="text-xs text-white/80 font-semibold">{s.class} ({s.section})</span>
