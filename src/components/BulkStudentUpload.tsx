@@ -1,11 +1,11 @@
-import { useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Download, FileText, X, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Download, FileText, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
+import { createStudentAuthAccount, normalizeClass } from "@/lib/studentAccounts";
 
 interface BulkStudentUploadProps {
   schoolId: string;
@@ -13,497 +13,232 @@ interface BulkStudentUploadProps {
   sections: string[];
   onComplete: (createdRows?: any[]) => void;
   allowedClasses?: string[];
-  allowedSections?: string[];
   defaultTeacherId?: string;
 }
 
 interface ParsedRow {
   name: string;
-  fatherName: string;
-  class: string;
-  section: string;
-  rollNo: string;
-  teacherName: string;
-  username: string;
+  email: string;
   password: string;
+  className: string;
   error?: string;
 }
 
-const CLASS_OPTIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
-const BULK_STUDENTS_VERSION = "bulk-students-sync-20260529";
-const ACCEPTED_BULK_STUDENTS_VERSIONS = new Set([BULK_STUDENTS_VERSION]);
+const DEFAULT_CLASSES = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 
-const toHex = (value: string) => Array.from(new TextEncoder().encode(value))
-  .map((byte) => byte.toString(16).padStart(2, "0"))
-  .join("");
-const hashUsername = (value: string) => {
-  let hash = 2166136261;
-  for (let i = 0; i < value.length; i++) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
+const readCell = (row: Record<string, unknown>, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== undefined && value !== null) return String(value).trim();
   }
-  return (hash >>> 0).toString(36);
-};
-const usernameToEmail = (username: string) => {
-  const clean = username.trim();
-  const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..") && !clean.startsWith(".") && !clean.endsWith(".") && clean.length <= 60;
-  return `${safeLocalPart ? clean : `u_${hashUsername(clean)}_${toHex(clean).slice(0, 24)}`}@avartan.school`.toLowerCase();
-};
-const passwordForAuth = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
-
-const invokeBulkStudents = (users: any[], context: { school_id: string; tenant_id: string; role: string; teacher_id?: string | null }) => {
-  return supabase.functions.invoke("bulk-create-students", {
-    body: {
-      action: "bulk_create_students_v2",
-      users,
-      rows: users,
-      school_id: context.school_id,
-      tenant_id: context.tenant_id,
-      role: context.role,
-      teacher_id: context.teacher_id || null,
-      context,
-    },
-  });
+  return "";
 };
 
-const getInvokeErrorDetail = async (error: any, data: any) => {
-  if (data?.error) return data.error;
-  if (data?.errors?.length) return data.errors.join("; ");
-  const context = error?.context;
-  if (context) {
-    try {
-      const payload = await context.clone().json();
-      if (payload?.error) return payload.error;
-      if (payload?.errors?.length) return payload.errors.join("; ");
-    } catch {}
-  }
-  return error?.message || "Edge function failed";
-};
+const stripContextColumns = (rows: any[]) => rows.map(({ tenant_id, created_by, ...row }) => row);
 
-// Normalize a class input like "3", "3rd", "Class 3", "III", "3rd-E" → "3rd".
-// Section suffix (after "-") is stripped — section is a separate field.
-const normalizeClass = (raw: string): string => {
-  if (!raw) return "";
-  let s = String(raw).trim();
-  s = s.split("-")[0].trim();
-  s = s.replace(/^class\s*/i, "").trim();
-  const roman: Record<string, number> = { i:1, ii:2, iii:3, iv:4, v:5, vi:6, vii:7, viii:8, ix:9, x:10 };
-  if (roman[s.toLowerCase()]) s = String(roman[s.toLowerCase()]);
-  const m = s.match(/^(\d{1,2})/);
-  if (m) {
-    const n = parseInt(m[1], 10);
-    if (n >= 1 && n <= 10) {
-      const suffix = n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th";
-      return `${n}${suffix}`;
-    }
-  }
-  return s;
-};
-
-const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedClasses, allowedSections, defaultTeacherId }: BulkStudentUploadProps) => {
+const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedClasses, defaultTeacherId }: BulkStudentUploadProps) => {
   const queryClient = useQueryClient();
-  const [show, setShow] = useState(false);
-  const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [results, setResults] = useState<{ name: string; success: boolean; username?: string; password?: string; error?: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState<ParsedRow[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
 
-  const effectiveClasses = (allowedClasses && allowedClasses.length ? allowedClasses : CLASS_OPTIONS).map(normalizeClass);
-  const effectiveSections = allowedSections && allowedSections.length ? allowedSections : sections;
+  const validClasses = (allowedClasses?.length ? allowedClasses : DEFAULT_CLASSES).map(normalizeClass);
+  const defaultSection = sections[0] || "A";
 
-  const downloadTemplate = () => {
-    const wb = XLSX.utils.book_new();
-    const headers = ["Student Name", "Father Name", "Class", "Section", "Roll No", "Teacher Name", "Username", "Password"];
-    const sampleClass = effectiveClasses[0] || "1st";
-    const sampleSection = effectiveSections[0] || "A";
-    const sampleData = [
-      ["Rahul Kumar", "Suresh Kumar", sampleClass, sampleSection, "1", teachers[0] ? `${teachers[0].firstName} ${teachers[0].lastName}` : "Teacher Name", "rahul_k1", "pass1234"],
-      ["Priya Singh", "Rajesh Singh", sampleClass, sampleSection, "2", teachers[0] ? `${teachers[0].firstName} ${teachers[0].lastName}` : "Teacher Name", "priya_s2", "pass5678"],
-    ];
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleData]);
-    ws["!cols"] = headers.map(() => ({ wch: 18 }));
-    XLSX.utils.book_append_sheet(wb, ws, "Students");
-
-    const refHeaders = ["Valid Classes", "Valid Sections", "Available Teachers"];
-    const maxRows = Math.max(effectiveClasses.length, effectiveSections.length, teachers.length);
-    const refData: string[][] = [];
-    for (let i = 0; i < maxRows; i++) {
-      refData.push([
-        effectiveClasses[i] || "",
-        effectiveSections[i] || "",
-        teachers[i] ? `${teachers[i].firstName} ${teachers[i].lastName}` : "",
-      ]);
-    }
-    const refWs = XLSX.utils.aoa_to_sheet([refHeaders, ...refData]);
-    refWs["!cols"] = refHeaders.map(() => ({ wch: 22 }));
-    XLSX.utils.book_append_sheet(wb, refWs, "Reference (Valid Values)");
-
-    XLSX.writeFile(wb, "student_bulk_upload_template.xlsx");
-    toast.success("Template downloaded!");
+  const getActualSchoolId = async () => {
+    const { data: school } = await supabase.from("schools").select("id").eq("user_id", schoolId).maybeSingle();
+    return school?.id || schoolId;
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const downloadTemplate = () => {
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ["Name", "Email", "Password", "Class"],
+      ["Rahul Kumar", "rahul.kumar@example.com", "pass123", validClasses[0] || "3rd"],
+      ["Priya Singh", "priya.singh@example.com", "pass123", validClasses[1] || "5th"],
+    ]);
+    worksheet["!cols"] = [{ wch: 24 }, { wch: 30 }, { wch: 18 }, { wch: 14 }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+    XLSX.writeFile(workbook, "student_onboarding_template.xlsx");
+    toast.success("Template downloaded");
+  };
+
+  const parseFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
-    setResults([]);
+    setSummary(null);
 
     const reader = new FileReader();
-    reader.onload = async (evt) => {
+    reader.onload = (loadEvent) => {
       try {
-        const wb = XLSX.read(evt.target?.result, { type: "binary" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json<Record<string, string>>(ws);
-
-        const getVal = (row: Record<string, string>, ...keys: string[]): string => {
-          for (const k of keys) {
-            const val = row[k];
-            if (val !== undefined && val !== null) return String(val).trim();
-          }
-          return "";
-        };
-
-        const rows: ParsedRow[] = data.map((row) => {
-          const name = getVal(row, "Student Name", "Name", "Student_Name", "name", "student name");
-          const fatherName = getVal(row, "Father Name", "Father_Name", "FatherName", "father name", "Father's Name");
-          const clsRaw = getVal(row, "Class", "class");
-          const cls = normalizeClass(clsRaw);
-          const section = getVal(row, "Section", "section");
-          const rollNo = getVal(row, "Roll No", "Roll", "RollNo", "roll_no", "roll no", "roll");
-          const teacherName = getVal(row, "Teacher Name", "Teacher", "TeacherName", "teacher name", "teacher");
-          const username = getVal(row, "Username", "username", "User Name", "user_name", "UserName");
-          const password = getVal(row, "Password", "password", "Pass", "pass");
-
+        const workbook = XLSX.read(loadEvent.target?.result, { type: "binary" });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: "" });
+        const parsed = data.map((item) => {
+          const name = readCell(item, "Name", "Student Name", "StudentName", "name");
+          const email = readCell(item, "Email", "Username", "User Name", "email", "username");
+          const password = readCell(item, "Password", "Pass", "password");
+          const rawClass = readCell(item, "Class", "class", "Grade", "grade");
+          const className = normalizeClass(rawClass);
           const errors: string[] = [];
           if (!name) errors.push("Name required");
-          if (!fatherName) errors.push("Father name required");
-          if (!cls || !effectiveClasses.includes(cls)) errors.push(`Invalid class "${clsRaw}" (allowed: ${effectiveClasses.join(", ")})`);
-          if (!section || !effectiveSections.includes(section)) errors.push(`Invalid section "${section}" (allowed: ${effectiveSections.join(", ")})`);
-          if (!rollNo) errors.push("Roll no required");
-          if (!username) errors.push("Username required");
+          if (!email) errors.push("Email required");
           if (!password) errors.push("Password required");
-
-          const matchedTeacher = defaultTeacherId
-            ? teachers.find((t) => t.id === defaultTeacherId)
-            : teachers.find((t) => `${t.firstName} ${t.lastName}`.toLowerCase() === teacherName.toLowerCase());
-          if (!matchedTeacher) errors.push(defaultTeacherId ? "Teacher binding missing" : `Teacher "${teacherName}" not found`);
-
-          return {
-            name, fatherName, class: cls, section, rollNo,
-            teacherName, username, password,
-            error: errors.length > 0 ? errors.join(", ") : undefined,
-          };
+          if (!className || !validClasses.includes(className)) errors.push(`Invalid class ${rawClass || "blank"}`);
+          return { name, email, password, className, error: errors.join(", ") || undefined };
         });
-
-        const errorRows = rows.filter((r) => r.error);
-        const validRows = rows.filter((r) => !r.error);
-
-        if (rows.length === 0) {
-          toast.error("No data found in file");
-        } else if (errorRows.length > 0 && validRows.length === 0) {
-          setParsedRows(rows);
-          toast.error(`All ${errorRows.length} row(s) have errors. Fix and re-upload.`);
-        } else if (errorRows.length > 0) {
-          setParsedRows(rows);
-          toast.error(`${errorRows.length} row(s) have errors. ${validRows.length} valid row(s) will be created automatically after you review.`);
-        } else {
-          // All valid — create immediately
-          setParsedRows(rows);
-          await handleBulkCreate(validRows);
-        }
-      } catch {
-        toast.error("Failed to parse file. Use the template format.");
+        setRows(parsed);
+        if (parsed.length === 0) toast.error("No rows found in the file");
+      } catch (error: any) {
+        toast.error(error?.message || "Could not read the selected file");
       }
     };
     reader.readAsBinaryString(file);
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  const handleBulkCreate = async (rowsToProcess?: ParsedRow[]) => {
-    const validRows = rowsToProcess || parsedRows.filter((r) => !r.error);
-    if (validRows.length === 0) {
-      toast.error("No valid rows to process");
+  const createStudents = async () => {
+    const validRows = rows.filter((row) => !row.error);
+    if (!validRows.length) {
+      toast.error("No valid students to upload");
       return;
     }
 
     setUploading(true);
-    const newResults: typeof results = [];
-    const createdStudents: any[] = [];
-
+    setSummary(null);
     try {
-      const { data: schoolRecord } = await supabase.from("schools").select("id").eq("user_id", schoolId).maybeSingle();
-      const actualSchoolId = schoolRecord?.id || schoolId;
-      const activeContext = {
-        school_id: actualSchoolId,
-        tenant_id: actualSchoolId,
-        role: defaultTeacherId ? "teacher" : "school",
-        teacher_id: defaultTeacherId || null,
-      };
+      const { data: sessionData } = await supabase.auth.getUser();
+      const createdBy = sessionData.user?.id;
+      if (!createdBy) throw new Error("Please login again before uploading students");
 
-      // Prepare complete student records so auth user + student row are created together server-side.
-      const usersPayload = validRows.map((row) => {
-        const matchedTeacher = defaultTeacherId
-          ? teachers.find((t) => t.id === defaultTeacherId)
-          : teachers.find((t) => `${t.firstName} ${t.lastName}`.toLowerCase() === row.teacherName.toLowerCase());
+      const actualSchoolId = await getActualSchoolId();
+      const tenantId = actualSchoolId;
+      const authAccounts = [];
+      for (const row of validRows) {
+        const account = await createStudentAuthAccount(row.email, row.password, row.name);
+        authAccounts.push(account);
+      }
+
+      const studentRows = validRows.map((row, index) => {
+        const teacher = defaultTeacherId
+          ? teachers.find((item) => item.id === defaultTeacherId)
+          : teachers.find((item) => item.classes.some((teacherClass) => normalizeClass(teacherClass) === row.className || teacherClass.startsWith(row.className)));
         return {
-          email: usernameToEmail(row.username),
-          password: passwordForAuth(row.password),
-          role: "student" as const,
-          metadata: { username: row.username, display_name: row.name },
-          student: {
-            school_id: actualSchoolId,
-            teacher_id: matchedTeacher?.id || null,
-            name: row.name,
-            father_name: row.fatherName,
-            class: row.class,
-            section: row.section,
-            roll_no: row.rollNo,
-          },
+          user_id: authAccounts[index].userId,
+          school_id: actualSchoolId,
+          tenant_id: tenantId,
+          created_by: createdBy,
+          teacher_id: teacher?.id || null,
+          name: row.name,
+          father_name: "",
+          class: row.className,
+          section: defaultSection,
+          roll_no: "",
+          xp: 0,
+          progress: 0,
         };
       });
 
-      // Chunk into batches of 8 to stay under auth rate limits and avoid edge timeouts.
-      // Chunk into batches of 8 to stay under auth rate limits and avoid edge timeouts.
-      const CHUNK = 8;
-      for (let i = 0; i < usersPayload.length; i += CHUNK) {
-        const slice = usersPayload.slice(i, i + CHUNK);
-        const { data: bulkResult, error: bulkError } = await invokeBulkStudents(slice, activeContext);
-        if (bulkError) {
-          const detail = await getInvokeErrorDetail(bulkError, bulkResult);
-          const uploadMessage = detail?.toLowerCase?.().includes("insufficient permissions")
-            ? "Student creation was blocked by the backend. Please retry after the latest update finishes."
-            : detail;
-          toast.error(`Bulk creation failed: ${uploadMessage}`);
-          setUploading(false);
-          return;
-        }
-        if (!ACCEPTED_BULK_STUDENTS_VERSIONS.has(bulkResult?.version)) {
-          toast.error("Bulk upload service version mismatch. Please retry after the latest function deploy finishes.");
-          setUploading(false);
-          return;
-        }
-        const completedRows = bulkResult?.students || bulkResult?.users || [];
-        if ((bulkResult?.modifiedRowCount || completedRows.length) > 0) {
-          createdStudents.push(...completedRows);
-        }
-        queryClient.invalidateQueries({ queryKey: ["students"] });
-        queryClient.invalidateQueries({ queryKey: ["dashboardMetrics"] });
-        queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
-        queryClient.invalidateQueries({ queryKey: ["metrics"] });
-        (bulkResult?.errors || []).forEach((errorText: string) => {
-          const row = validRows.find((r) => errorText.startsWith(usernameToEmail(r.username)));
-          newResults.push({ name: row?.name || errorText.split(":")[0], success: false, error: errorText });
-        });
+      let insertResult = await supabase.from("students").insert(studentRows as any).select();
+      if (insertResult.error && /tenant_id|created_by|schema cache/i.test(insertResult.error.message || "")) {
+        insertResult = await supabase.from("students").insert(stripContextColumns(studentRows) as any).select();
       }
+      if (insertResult.error) throw insertResult.error;
 
-      const createdIds = createdStudents.map((item) => item.id).filter(Boolean);
-      if (createdIds.length > 0) {
-        const { data: confirmedRows } = await supabase.from("students").select("*").in("id", createdIds);
-        if (confirmedRows?.length) {
-          createdStudents.splice(0, createdStudents.length, ...confirmedRows);
-        }
-      }
+      const createdRows = (insertResult.data || []).map((student: any, index: number) => ({
+        ...student,
+        username: validRows[index]?.email || "",
+        password: validRows[index]?.password || "",
+      }));
 
-      const successfulUserIds = new Set(createdStudents.map((item) => item.user_id || item.id).filter(Boolean));
-      for (const row of validRows) {
-        const created = createdStudents.find((item) => item.email === usernameToEmail(row.username) || item.name === row.name);
-        if (created && (successfulUserIds.has(created.user_id) || successfulUserIds.has(created.id))) {
-          newResults.push({ name: row.name, success: true, username: row.username, password: row.password });
-        }
-      }
-    } catch (err: any) {
-      toast.error(`Unexpected error: ${err.message}`);
-    }
+      await queryClient.invalidateQueries({ queryKey: ["students"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboardMetrics"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+      await queryClient.invalidateQueries({ queryKey: ["metrics"] });
 
-    setResults(newResults);
-    setParsedRows([]);
-    setUploading(false);
-
-    const successCount = newResults.filter((r) => r.success).length;
-    const failCount = newResults.filter((r) => !r.success).length;
-    if (successCount > 0) toast.success(`${successCount} student(s) created successfully!`);
-    if (failCount > 0) toast.error(`${failCount} student(s) failed.`);
-    if (successCount > 0 || createdStudents.length > 0) {
-      queryClient.invalidateQueries({ queryKey: ["students"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardMetrics"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
-      queryClient.invalidateQueries({ queryKey: ["metrics"] });
-      onComplete(createdStudents);
+      onComplete(createdRows);
+      setRows([]);
+      setSummary(`${createdRows.length} student(s) uploaded successfully.`);
+      toast.success(`${createdRows.length} student(s) uploaded successfully`);
+    } catch (error: any) {
+      toast.error(error?.message || "Bulk upload failed");
+    } finally {
+      setUploading(false);
     }
   };
 
-  const downloadResults = () => {
-    const wb = XLSX.utils.book_new();
-    const data = results.map((r) => ({
-      "Student Name": r.name,
-      "Status": r.success ? "Success" : "Failed",
-      "Username": r.username || "",
-      "Password": r.password || "",
-      "Error": r.error || "",
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    ws["!cols"] = [{ wch: 20 }, { wch: 10 }, { wch: 18 }, { wch: 14 }, { wch: 30 }];
-    XLSX.utils.book_append_sheet(wb, ws, "Results");
-    XLSX.writeFile(wb, "bulk_upload_results.xlsx");
-  };
-
-  const validCount = parsedRows.filter((r) => !r.error).length;
-  const errorCount = parsedRows.filter((r) => r.error).length;
+  const errorCount = rows.filter((row) => row.error).length;
+  const validCount = rows.length - errorCount;
 
   return (
-    <div>
-      <Button variant="hero" size="xl" onClick={() => setShow(!show)}>
-        <Upload className="w-6 h-6 mr-2" /> Bulk Upload
+    <div className="relative">
+      <Button variant="hero" size="xl" onClick={() => setOpen((value) => !value)}>
+        <Upload className="w-6 h-6 mr-2" /> Upload Students
       </Button>
 
-      <AnimatePresence>
-        {show && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="glass-card p-6 mt-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display text-lg font-bold text-white flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-neon-blue" /> Bulk Student Upload
-                </h2>
-                <Button variant="ghost" size="icon" onClick={() => { setShow(false); setParsedRows([]); setResults([]); }}>
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
-
-              {/* Step 1: Download Template */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <h3 className="text-sm font-display font-bold text-white/80 mb-2">Step 1: Download Template</h3>
-                <p className="text-xs text-white/50 font-body mb-3">
-                  Download the Excel template, fill in student details, and upload it back. The template includes a reference sheet with valid class names, sections, and teacher names.
-                </p>
-                <Button variant="glass" size="sm" onClick={downloadTemplate}>
-                  <Download className="w-4 h-4 mr-1" /> Download Template
-                </Button>
-              </div>
-
-              {/* Step 2: Upload */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <h3 className="text-sm font-display font-bold text-white/80 mb-2">Step 2: Upload Filled Template</h3>
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-dashed border-white/20 hover:border-neon-blue/40 transition-colors">
-                  <FileText className="w-5 h-5 text-neon-blue" />
-                  <span className="text-sm text-white/70 font-body">Click to select Excel file (.xlsx)</span>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              {/* Preview */}
-              {parsedRows.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-sm font-body">
-                    <span className="text-white/70">{parsedRows.length} row(s) found</span>
-                    <span className="text-neon-green">{validCount} valid</span>
-                    {errorCount > 0 && <span className="text-destructive">{errorCount} error(s)</span>}
-                  </div>
-
-                  <div className="max-h-60 overflow-auto rounded-lg border border-white/10">
-                    <table className="w-full text-xs">
-                      <thead className="bg-white/5 sticky top-0">
-                        <tr className="text-white/60 font-body">
-                          <th className="px-2 py-2 text-left">Name</th>
-                          <th className="px-2 py-2 text-left">Class</th>
-                          <th className="px-2 py-2 text-left">Section</th>
-                          <th className="px-2 py-2 text-left">Roll</th>
-                          <th className="px-2 py-2 text-left">Teacher</th>
-                          <th className="px-2 py-2 text-left">Username</th>
-                          <th className="px-2 py-2 text-left">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {parsedRows.map((row, i) => (
-                          <tr key={i} className={`border-t border-white/5 ${row.error ? "bg-destructive/10" : ""}`}>
-                            <td className="px-2 py-1.5 text-white/80">{row.name}</td>
-                            <td className="px-2 py-1.5 text-white/60">{row.class}</td>
-                            <td className="px-2 py-1.5 text-white/60">{row.section}</td>
-                            <td className="px-2 py-1.5 text-white/60">{row.rollNo}</td>
-                            <td className="px-2 py-1.5 text-white/60">{row.teacherName}</td>
-                            <td className="px-2 py-1.5 text-white/60">{row.username}</td>
-                            <td className="px-2 py-1.5">
-                              {row.error ? (
-                                <span className="text-destructive flex items-center gap-1">
-                                  <AlertTriangle className="w-3 h-3" /> {row.error}
-                                </span>
-                              ) : (
-                                <span className="text-neon-green">✓ Valid</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="flex justify-end gap-3">
-                    <Button variant="ghost" onClick={() => setParsedRows([])}>Cancel</Button>
-                    <Button
-                      variant="hero"
-                      onClick={() => handleBulkCreate()}
-                      disabled={uploading || validCount === 0}
-                    >
-                      {uploading ? (
-                        <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Creating {validCount} students...</>
-                      ) : (
-                        `Create ${validCount} Student(s)`
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Results */}
-              {results.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-display font-bold text-white/80">Upload Results</h3>
-                  <div className="max-h-48 overflow-auto rounded-lg border border-white/10">
-                    <table className="w-full text-xs">
-                      <thead className="bg-white/5 sticky top-0">
-                        <tr className="text-white/60 font-body">
-                          <th className="px-2 py-2 text-left">Name</th>
-                          <th className="px-2 py-2 text-left">Status</th>
-                          <th className="px-2 py-2 text-left">Username</th>
-                          <th className="px-2 py-2 text-left">Password</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {results.map((r, i) => (
-                          <tr key={i} className={`border-t border-white/5 ${!r.success ? "bg-destructive/10" : ""}`}>
-                            <td className="px-2 py-1.5 text-white/80">{r.name}</td>
-                            <td className="px-2 py-1.5">
-                              {r.success ? (
-                                <span className="text-neon-green flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Success</span>
-                              ) : (
-                                <span className="text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> {r.error}</span>
-                              )}
-                            </td>
-                            <td className="px-2 py-1.5 text-white/60">{r.username || "-"}</td>
-                            <td className="px-2 py-1.5 text-white/60">{r.password || "-"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <Button variant="glass" size="sm" onClick={downloadResults}>
-                    <Download className="w-4 h-4 mr-1" /> Download Results
-                  </Button>
-                </div>
-              )}
+      {open && (
+        <div className="glass-card p-5 mt-4 space-y-4 absolute right-0 z-20 w-[min(92vw,34rem)]">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-lg font-bold text-foreground">Student Upload</h2>
+              <p className="font-body text-sm text-muted-foreground">Template columns: Name, Email, Password, Class.</p>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <Button variant="ghost" size="icon" onClick={() => setOpen(false)}><X className="w-5 h-5" /></Button>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button variant="glass" size="sm" onClick={downloadTemplate}>
+              <Download className="w-4 h-4 mr-2" /> Download Template
+            </Button>
+            <label className="inline-flex items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground cursor-pointer hover:bg-accent transition-colors">
+              <FileText className="w-4 h-4" /> Select File
+              <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={parseFile} className="hidden" />
+            </label>
+          </div>
+
+          {rows.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex gap-3 text-sm text-muted-foreground">
+                <span>{rows.length} row(s)</span>
+                <span>{validCount} valid</span>
+                {errorCount > 0 && <span className="text-destructive">{errorCount} error(s)</span>}
+              </div>
+              <div className="max-h-56 overflow-auto rounded-lg border border-border">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted sticky top-0">
+                    <tr className="text-muted-foreground">
+                      <th className="px-2 py-2 text-left">Name</th>
+                      <th className="px-2 py-2 text-left">Email</th>
+                      <th className="px-2 py-2 text-left">Class</th>
+                      <th className="px-2 py-2 text-left">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row, index) => (
+                      <tr key={`${row.email}-${index}`} className="border-t border-border">
+                        <td className="px-2 py-2 text-foreground">{row.name}</td>
+                        <td className="px-2 py-2 text-muted-foreground">{row.email}</td>
+                        <td className="px-2 py-2 text-muted-foreground">{row.className}</td>
+                        <td className={row.error ? "px-2 py-2 text-destructive" : "px-2 py-2 text-primary"}>{row.error || "Ready"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setRows([])}>Clear</Button>
+                <Button variant="hero" onClick={createStudents} disabled={uploading || validCount === 0 || errorCount > 0}>
+                  {uploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</> : `Create ${validCount} Student(s)`}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {summary && <p className="text-sm text-primary font-body">{summary}</p>}
+        </div>
+      )}
     </div>
   );
 };
