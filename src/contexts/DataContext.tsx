@@ -61,6 +61,7 @@ const hashUsername = (value: string) => {
 };
 const usernameToEmail = (username: string) => {
   const clean = username.trim();
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return clean.toLowerCase();
   const safeLocalPart = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(clean) && !clean.includes("..") && !clean.startsWith(".") && !clean.endsWith(".") && clean.length <= 60;
   return `${safeLocalPart ? clean : `u_${hashUsername(clean)}_${toHex(clean).slice(0, 24)}`}@avartan.school`.toLowerCase();
 };
