@@ -340,11 +340,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </DataContext.Provider>
   );
-
-      {children}
-    </DataContext.Provider>
-  );
 };
+
 
 export const useData = () => {
   const ctx = useContext(DataContext);
