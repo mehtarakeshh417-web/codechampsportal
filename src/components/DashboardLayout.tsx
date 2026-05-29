@@ -7,8 +7,9 @@ import NotificationBell from "@/components/NotificationBell";
 import dashboardBg from "@/assets/dashboard-bg.jpg";
 import {
   LayoutDashboard, School, Users, BookOpen, Trophy, Settings, LogOut, GraduationCap,
-  BarChart3, Code, FileText, Gamepad2, Award, UserCircle, Menu, X, CalendarDays, MessageSquare, Keyboard, Megaphone, Layers
+  BarChart3, Code, FileText, Gamepad2, Award, UserCircle, Menu, X, CalendarDays, MessageSquare, Keyboard, Megaphone, Layers, Trash2
 } from "lucide-react";
+
 import AiTutorChat from "@/components/AiTutorChat";
 
 interface NavItem {
