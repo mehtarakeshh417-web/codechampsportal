@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GraduationCap, Plus, X, Trash2, AlertTriangle, Edit2 } from "lucide-react";
-import BulkStudentUpload from "@/components/BulkStudentUpload";
+import ClientStudentBulkUpload from "@/components/ClientStudentBulkUpload";
 
 import { toast } from "sonner";
 
@@ -99,7 +99,7 @@ const SchoolStudents = () => {
           <p className="font-body text-primary-foreground">Manage Student Enrollment</p>
         </div>
         <div className="flex gap-3">
-          <BulkStudentUpload
+          <ClientStudentBulkUpload
             schoolId={schoolId}
             teachers={teachers.map((t) => ({ id: t.id, firstName: t.firstName, lastName: t.lastName, classes: t.classes }))}
             sections={SECTION_OPTIONS}
