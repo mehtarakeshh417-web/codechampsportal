@@ -174,7 +174,15 @@ const SchoolStudents = () => {
         </motion.div>
       )}
 
+      {focusId && (
+        <div className="mb-4 flex items-center justify-between glass-card p-3">
+          <span className="text-sm text-white/80 font-body">Viewing single student profile</span>
+          <Button variant="ghost" size="sm" onClick={clearFocus}>Show all students</Button>
+        </div>
+      )}
+
       {students.length === 0 ? (
+
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-12 text-center">
           <GraduationCap className="w-16 h-16 text-white/30 mx-auto mb-4" />
           <p className="text-white/50 font-body">No students enrolled yet</p>
