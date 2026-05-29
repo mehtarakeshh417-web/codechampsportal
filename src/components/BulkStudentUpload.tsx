@@ -207,6 +207,7 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
 
     setUploading(true);
     const newResults: typeof results = [];
+    const createdStudents: any[] = [];
 
     try {
       const { data: schoolRecord } = await supabase.from("schools").select("id").eq("user_id", schoolId).maybeSingle();
@@ -235,8 +236,8 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
       });
 
       // Chunk into batches of 8 to stay under auth rate limits and avoid edge timeouts.
+      // Chunk into batches of 8 to stay under auth rate limits and avoid edge timeouts.
       const CHUNK = 8;
-      const createdStudents: any[] = [];
       for (let i = 0; i < usersPayload.length; i += CHUNK) {
         const slice = usersPayload.slice(i, i + CHUNK);
         const { data: bulkResult, error: bulkError } = await supabase.functions.invoke("manage-users", {
