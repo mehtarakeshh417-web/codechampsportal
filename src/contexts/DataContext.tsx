@@ -274,6 +274,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveDeleted(schoolId, list);
   }, []);
 
+  const deleteSchool = useCallback(async (schoolId: string): Promise<string[]> => {
+    const school = schools.find(s => s.id === schoolId);
+    const schoolTeachers = teachers.filter(t => t.schoolId === schoolId);
+    const schoolStudents = students.filter(s => s.schoolId === schoolId);
+    const userIds = [school?.user_id, ...schoolTeachers.map(t => t.user_id), ...schoolStudents.map(s => s.user_id)].filter(Boolean) as string[];
+
+    await supabase.from("schools").delete().eq("id", schoolId);
+    if (userIds.length > 0) {
+      await supabase.functions.invoke("manage-users", { body: { action: "delete_users_bulk", user_ids: userIds } });
+    }
+    await fetchData();
+    return [];
+  }, [schools, teachers, students, fetchData]);
+
+
   const deleteTeacher = useCallback(async (teacherId: string): Promise<{ success: boolean; removedUsernames: string[]; error?: string }> => {
     const teacher = teachers.find(t => t.id === teacherId);
     if (!teacher) return { success: false, removedUsernames: [], error: "Teacher not found" };
