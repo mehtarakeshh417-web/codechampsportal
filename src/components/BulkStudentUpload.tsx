@@ -13,6 +13,7 @@ interface BulkStudentUploadProps {
   sections: string[];
   onComplete: (createdRows?: any[]) => void;
   allowedClasses?: string[];
+  allowedSections?: string[];
   defaultTeacherId?: string;
 }
 
@@ -36,7 +37,7 @@ const readCell = (row: Record<string, unknown>, ...keys: string[]) => {
 
 const stripContextColumns = (rows: any[]) => rows.map(({ tenant_id, created_by, ...row }) => row);
 
-const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedClasses, defaultTeacherId }: BulkStudentUploadProps) => {
+const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedClasses, allowedSections, defaultTeacherId }: BulkStudentUploadProps) => {
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -45,7 +46,7 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
   const [summary, setSummary] = useState<string | null>(null);
 
   const validClasses = (allowedClasses?.length ? allowedClasses : DEFAULT_CLASSES).map(normalizeClass);
-  const defaultSection = sections[0] || "A";
+  const defaultSection = allowedSections?.[0] || sections[0] || "A";
 
   const getActualSchoolId = async () => {
     const { data: school } = await supabase.from("schools").select("id").eq("user_id", schoolId).maybeSingle();
