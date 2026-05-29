@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       });
 
       if (createError) {
-        if (createError.message.includes("already been registered")) {
+        if (/already|registered|exists/i.test(createError.message || "")) {
           const existing = await findUserByEmail(supabase, email);
           if (existing) {
             userId = existing.id;
@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
           });
 
           if (createError || !newUser?.user) {
-            if (createError?.message?.includes("already been registered")) {
+            if (/already|registered|exists/i.test(createError?.message || "")) {
               const existing = await findUserByEmail(supabase, email);
               if (!existing) {
                 errors.push(`${email}: account exists but could not be loaded`);
