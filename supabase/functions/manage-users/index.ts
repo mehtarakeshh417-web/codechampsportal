@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const normalizePassword = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
-const BULK_STUDENTS_VERSION = "bulk-students-v2-20260529";
+const BULK_STUDENTS_VERSION = "bulk-students-sync-20260529";
 
 const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       });
 
       if (createError) {
-        if (createError.message.includes("already been registered")) {
+        if (/already|registered|exists/i.test(createError.message || "")) {
           const existing = await findUserByEmail(supabase, email);
           if (existing) {
             userId = existing.id;
@@ -121,7 +121,10 @@ Deno.serve(async (req) => {
     }
 
     if (action === "bulk_create_students_v2" || action === "create_users_bulk") {
-      const { users } = body;
+      const users = Array.isArray(body.users) ? body.users : (Array.isArray(body.rows) ? body.rows : (Array.isArray(body.students) ? body.students : []));
+      const requestContext = body.context || {};
+      const explicitSchoolId = requestContext.school_id || requestContext.schoolId || body.school_id || body.schoolId || requestContext.tenant_id || requestContext.tenantId || body.tenant_id || body.tenantId;
+      const explicitTeacherId = requestContext.teacher_id || requestContext.teacherId || body.teacher_id || body.teacherId;
 
       const results: any[] = [];
       const errors: string[] = [];
@@ -161,6 +164,12 @@ Deno.serve(async (req) => {
           if (studentPayload && schoolRecord && !isAdmin) {
             studentPayload.school_id = schoolRecord.id;
           }
+          if (studentPayload && !studentPayload.school_id && explicitSchoolId) {
+            studentPayload.school_id = explicitSchoolId;
+          }
+          if (studentPayload && !studentPayload.teacher_id && explicitTeacherId) {
+            studentPayload.teacher_id = explicitTeacherId;
+          }
 
           if (role === "student") {
             const requiredStudentFields = ["school_id", "name", "class", "section", "roll_no"];
@@ -176,7 +185,7 @@ Deno.serve(async (req) => {
           });
 
           if (createError || !newUser?.user) {
-            if (createError?.message?.includes("already been registered")) {
+            if (/already|registered|exists/i.test(createError?.message || "")) {
               const existing = await findUserByEmail(supabase, email);
               if (!existing) {
                 errors.push(`${email}: account exists but could not be loaded`);
@@ -233,7 +242,7 @@ Deno.serve(async (req) => {
       }
 
       console.log(`[BULK STUDENTS V2] done: ${results.length} ok, ${errors.length} errors`);
-      return jsonResponse({ ok: errors.length === 0, version: BULK_STUDENTS_VERSION, users: results, students: results, errors });
+      return jsonResponse({ ok: errors.length === 0, success: results.length > 0, version: BULK_STUDENTS_VERSION, rowCount: users.length, modifiedRowCount: results.length, users: results, students: results, errors });
     }
 
     if (action === "delete_user") {

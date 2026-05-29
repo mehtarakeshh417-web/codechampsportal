@@ -205,8 +205,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const school = schools.find(s => s.user_id === data.schoolId);
     const actualSchoolId = school?.id || data.schoolId;
 
-    const { data: result, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "bulk_create_students_v2", users: [{
+    const { data: result, error } = await supabase.functions.invoke("bulk-create-students", {
+      body: {
+        action: "bulk_create_students_v2",
+        school_id: actualSchoolId,
+        tenant_id: actualSchoolId,
+        role: user?.role || "school",
+        teacher_id: data.teacherId || null,
+        context: { school_id: actualSchoolId, tenant_id: actualSchoolId, role: user?.role || "school", teacher_id: data.teacherId || null },
+        users: [{
         email: usernameToEmail(username),
         password: passwordForAuth(password),
         role: "student",
@@ -229,7 +236,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newStudent = { ...mapStudent(student), username, password };
     setStudents(prev => [...prev, newStudent]);
     return newStudent;
-  }, [schools]);
+  }, [schools, user]);
 
   const updateSchool = useCallback(async (schoolId: string, data: Partial<Pick<SchoolData, "name" | "address" | "state" | "city" | "phone" | "sections">>) => {
     const school = schools.find(s => s.user_id === schoolId);
