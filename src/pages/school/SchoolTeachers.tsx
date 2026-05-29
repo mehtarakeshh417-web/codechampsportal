@@ -17,7 +17,9 @@ const SchoolTeachers = () => {
   const { addTeacher, getSchoolTeachers, getSchoolStudents, deleteTeacher, updateTeacher, getSchool } = useData();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ firstName: "", lastName: "", classes: [] as string[] });
+  const [editSelectedClasses, setEditSelectedClasses] = useState<Record<string, string[]>>({});
+  const [editForm, setEditForm] = useState({ firstName: "", lastName: "" });
+
   const [form, setForm] = useState({ firstName: "", lastName: "", username: "", password: "" });
   const [selectedClasses, setSelectedClasses] = useState<Record<string, string[]>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,7 +104,29 @@ const SchoolTeachers = () => {
 
   const startEdit = (t: typeof teachers[0]) => {
     setEditingId(t.id);
-    setEditForm({ firstName: t.firstName, lastName: t.lastName, classes: t.classes });
+    setEditForm({ firstName: t.firstName, lastName: t.lastName });
+    setEditSelectedClasses(parseClassStrings(t.classes));
+  };
+
+  const toggleEditClass = (cls: string) => {
+    setEditSelectedClasses((prev) => {
+      const next = { ...prev };
+      if (next[cls]) delete next[cls];
+      else next[cls] = SECTION_LIST[0] ? [SECTION_LIST[0]] : [];
+      return next;
+    });
+  };
+
+  const toggleEditSection = (cls: string, section: string) => {
+    setEditSelectedClasses((prev) => {
+      const next = { ...prev };
+      const list = next[cls] || [];
+      if (list.includes(section)) {
+        const filtered = list.filter((s) => s !== section);
+        if (filtered.length === 0) delete next[cls]; else next[cls] = filtered;
+      } else next[cls] = [...list, section];
+      return next;
+    });
   };
 
   const saveEdit = async (teacherId: string) => {
@@ -110,10 +134,12 @@ const SchoolTeachers = () => {
       toast.error("Name fields cannot be empty");
       return;
     }
-    await updateTeacher(teacherId, { firstName: editForm.firstName, lastName: editForm.lastName, classes: editForm.classes });
+    const classStrings = getClassStrings(editSelectedClasses);
+    await updateTeacher(teacherId, { firstName: editForm.firstName, lastName: editForm.lastName, classes: classStrings });
     toast.success("Teacher updated.");
     setEditingId(null);
   };
+
 
   const formatClassDisplay = (classes: string[]) => {
     const grouped = parseClassStrings(classes);
@@ -230,17 +256,69 @@ const SchoolTeachers = () => {
                         <Edit2 className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="icon" className="text-white/30 hover:text-destructive shrink-0" onClick={() => handleDelete(t.id, `${t.firstName} ${t.lastName}`)}>
+              {editingId === t.id ?
+          <div className="glass-card p-4 space-y-4">
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">First Name</Label>
+                      <Input value={editForm.firstName} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} className="bg-white/10 border-white/20 text-white" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">Last Name</Label>
+                      <Input value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} className="bg-white/10 border-white/20 text-white" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white/80 font-body font-medium">Assigned Classes & Sections</Label>
+                    {CLASS_LIST.map((cls) => {
+                      const isSelected = !!editSelectedClasses[cls];
+                      return (
+                        <div key={cls} className={`rounded-xl border p-3 ${isSelected ? "border-primary/40 bg-primary/5" : "border-white/10 bg-white/5"}`}>
+                          <div className="flex items-center gap-3">
+                            <button type="button" onClick={() => toggleEditClass(cls)} className={`w-6 h-6 rounded-md border flex items-center justify-center ${isSelected ? "bg-primary border-primary text-white" : "border-white/30"}`}>
+                              {isSelected && <Check className="w-4 h-4" />}
+                            </button>
+                            <span className="font-body text-sm text-white/90 font-medium">Class {cls}</span>
+                            {isSelected && (
+                              <div className="flex gap-1.5 ml-auto">
+                                {SECTION_LIST.map((sec) => {
+                                  const secSelected = editSelectedClasses[cls]?.includes(sec);
+                                  return (
+                                    <button key={sec} type="button" onClick={() => toggleEditSection(cls, sec)} className={`w-8 h-8 rounded-lg text-xs font-bold ${secSelected ? "bg-neon-green/20 text-neon-green border border-neon-green/40" : "bg-white/10 text-white/50 border border-white/15 hover:bg-white/15"}`}>
+                                      {sec}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="hero" onClick={() => saveEdit(t.id)}>Save</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
+                  </div>
+                </div> :
+
+          <ExpandableTeacherCard
+            teacher={t}
+            students={schoolStudents}
+            formatClassDisplay={formatClassDisplay}
+            actions={
+            <>
+                      <Button variant="ghost" size="icon" className="text-white/30 hover:text-neon-blue shrink-0" onClick={() => startEdit(t)}>
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-white/30 hover:text-destructive shrink-0" onClick={() => handleDelete(t.id, `${t.firstName} ${t.lastName}`)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </>
             } />
 
           }
-            </motion.div>
-        )}
-        </div>
-      }
-    </div>);
+
 
 };
 
