@@ -336,7 +336,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [schools, students]);
 
   const getTeacherStudents = useCallback((teacherId: string) => {
-    const teacher = teachers.find(t => t.user_id === teacherId);
+    const teacher = teachers.find(t => t.user_id === teacherId || t.id === teacherId);
     const actual = teacher?.id || teacherId;
     return students.filter(s => s.teacherId === actual);
   }, [teachers, students]);
@@ -350,10 +350,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const mergeStudents = useCallback((rows: any[]) => {
     if (!rows?.length) return;
     setStudents((prev) => {
-      const map = new Map(prev.map((s) => [s.id, s]));
+      const map = new Map(prev.map((s) => [s.id || s.user_id || `${s.schoolId}:${s.name}:${s.rollNo}`, s]));
       rows.forEach((r) => {
-        if (!r?.id) return;
-        map.set(r.id, mapStudent(r));
+        if (!r) return;
+        const mapped = mapStudent(r);
+        const key = mapped.id || mapped.user_id || `${mapped.schoolId}:${mapped.name}:${mapped.rollNo}`;
+        map.set(key, mapped);
       });
       return Array.from(map.values());
     });
