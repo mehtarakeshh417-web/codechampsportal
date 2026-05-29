@@ -281,7 +281,10 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
           setUploading(false);
           return;
         }
-        createdStudents.push(...(bulkResult?.students || bulkResult?.users || []));
+        const completedRows = bulkResult?.students || bulkResult?.users || [];
+        if ((bulkResult?.modifiedRowCount || completedRows.length) > 0) {
+          createdStudents.push(...completedRows);
+        }
         queryClient.invalidateQueries({ queryKey: ["students"] });
         queryClient.invalidateQueries({ queryKey: ["dashboardMetrics"] });
         queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
