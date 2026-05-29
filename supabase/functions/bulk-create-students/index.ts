@@ -6,13 +6,17 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const VERSION = "bulk-create-students-20260529";
+const VERSION = "bulk-students-sync-20260529";
 const normalizePassword = (password: string) => password.length >= 6 ? password : `cc_${password}`.padEnd(6, "_");
 
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
   status,
   headers: { ...corsHeaders, "Content-Type": "application/json" },
 });
+
+const compact = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(row).filter(([, value]) => value !== undefined));
+const pickFirst = (source: any, keys: string[]) => keys.map((key) => source?.[key]).find((value) => value !== undefined && value !== null && String(value).trim() !== "");
+const getUsers = (body: any) => Array.isArray(body) ? body : (Array.isArray(body?.users) ? body.users : (Array.isArray(body?.students) ? body.students : (Array.isArray(body?.rows) ? body.rows : [])));
 
 const findUserByEmail = async (adminClient: any, email: string) => {
   let page = 1;
@@ -34,45 +38,63 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
     if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-      return json({ ok: false, version: VERSION, students: [], errors: ["Bulk student service is missing server credentials"] }, 500);
+      return json({ ok: false, success: false, version: VERSION, modifiedRowCount: 0, students: [], errors: ["Bulk student service is missing server credentials"] }, 500);
     }
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ ok: false, version: VERSION, students: [], errors: ["Login required"] }, 401);
+    if (!authHeader) return json({ ok: false, success: false, version: VERSION, modifiedRowCount: 0, students: [], errors: ["Login required"] }, 401);
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
     const callerClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
     const { data: { user: caller }, error: callerError } = await callerClient.auth.getUser();
-    if (callerError || !caller) return json({ ok: false, version: VERSION, students: [], errors: ["Login expired. Please login again."] }, 401);
+    if (callerError || !caller) return json({ ok: false, success: false, version: VERSION, modifiedRowCount: 0, students: [], errors: ["Login expired. Please login again."] }, 401);
 
     const body = await req.json().catch(() => ({}));
-    const users = Array.isArray(body.users) ? body.users : [];
-    if (users.length === 0) return json({ ok: false, version: VERSION, students: [], errors: ["No students supplied"] }, 400);
+    const users = getUsers(body);
+    if (users.length === 0) return json({ ok: false, success: false, version: VERSION, modifiedRowCount: 0, students: [], errors: ["No students supplied"] }, 400);
 
+    const context = body?.context || body?.metadata || {};
     const [{ data: teacher }, { data: school }] = await Promise.all([
       adminClient.from("teachers").select("id, school_id").eq("user_id", caller.id).maybeSingle(),
       adminClient.from("schools").select("id").eq("user_id", caller.id).maybeSingle(),
     ]);
 
+    const explicitSchoolId = pickFirst(context, ["school_id", "schoolId", "tenant_id", "tenantId"]) || pickFirst(body, ["school_id", "schoolId", "tenant_id", "tenantId"]);
+    const callerSchoolId = teacher?.school_id || school?.id || explicitSchoolId;
+    const callerTeacherId = teacher?.id || pickFirst(context, ["teacher_id", "teacherId"]);
+    const tenantId = pickFirst(context, ["tenant_id", "tenantId"]) || callerSchoolId;
+    const callerRole = teacher?.id ? "teacher" : (school?.id ? "school" : (context?.role || "authenticated"));
+
     const results: any[] = [];
     const errors: string[] = [];
+    let createdCount = 0;
+    let updatedCount = 0;
+
+    const writeStudent = async (student: Record<string, unknown>, userId: string, existingId?: string) => {
+      const payload = compact({ ...student, user_id: userId });
+      const execute = (row: Record<string, unknown>) => existingId
+        ? adminClient.from("students").update(row).eq("id", existingId).select().single()
+        : adminClient.from("students").insert(row).select().single();
+      let result = await execute(payload);
+      if (result.error && "tenant_id" in payload && /tenant_id/i.test(result.error.message || "")) {
+        const { tenant_id, ...withoutTenant } = payload;
+        result = await execute(withoutTenant);
+      }
+      return result;
+    };
 
     const processOne = async (u: any) => {
       let userId: string | null = null;
       let createdAuthUser = false;
-      const email = String(u?.email || "").trim().toLowerCase();
+      const email = String(u?.email || u?.username || "").trim().toLowerCase();
       try {
         const password = String(u?.password || "");
         if (!email || !email.includes("@")) throw new Error("valid username/email is required");
         if (!password) throw new Error("password is required");
 
-        const student = { ...(u?.student || {}) };
-        if (teacher?.id) {
-          student.school_id = teacher.school_id;
-          student.teacher_id = teacher.id;
-        } else if (school?.id) {
-          student.school_id = school.id;
-        }
+        const student = compact({ ...(u?.student || {}), school_id: callerSchoolId, tenant_id: tenantId });
+        if (callerRole === "teacher" && callerTeacherId) student.teacher_id = callerTeacherId;
+        if (!student.teacher_id && u?.student?.teacher_id) student.teacher_id = u.student.teacher_id;
 
         const missing = ["school_id", "name", "class", "section", "roll_no"].filter((key) => !String(student[key] || "").trim());
         if (missing.length > 0) throw new Error(`missing student fields - ${missing.join(", ")}`);
@@ -109,12 +131,9 @@ Deno.serve(async (req) => {
           .eq("user_id", userId)
           .maybeSingle();
 
-        const write = existingStudent?.id
-          ? adminClient.from("students").update({ ...student, user_id: userId }).eq("id", existingStudent.id).select().single()
-          : adminClient.from("students").insert({ ...student, user_id: userId }).select().single();
-
-        const { data: studentRow, error: studentError } = await write;
+        const { data: studentRow, error: studentError } = await writeStudent(student, userId, existingStudent?.id);
         if (studentError) throw new Error(`student profile failed - ${studentError.message}`);
+        existingStudent?.id ? updatedCount++ : createdCount++;
         results.push({ ...studentRow, email });
       } catch (error: any) {
         if (createdAuthUser && userId) await adminClient.auth.admin.deleteUser(userId);
@@ -127,8 +146,22 @@ Deno.serve(async (req) => {
       await Promise.all(users.slice(i, i + 2).map(processOne));
     }
 
-    return json({ ok: errors.length === 0, version: VERSION, students: results, errors });
+    const modifiedRowCount = results.length;
+    return json({
+      ok: errors.length === 0,
+      success: modifiedRowCount > 0,
+      status: errors.length === 0 ? "success" : (modifiedRowCount > 0 ? "partial" : "failed"),
+      version: VERSION,
+      rowCount: users.length,
+      modifiedRowCount,
+      createdCount,
+      updatedCount,
+      context: { school_id: callerSchoolId, tenant_id: tenantId, role: callerRole, teacher_id: callerTeacherId || null },
+      students: results,
+      users: results,
+      errors,
+    });
   } catch (error: any) {
-    return json({ ok: false, version: VERSION, students: [], errors: [error?.message || "Bulk student service failed"] }, 500);
+    return json({ ok: false, success: false, version: VERSION, modifiedRowCount: 0, students: [], errors: [error?.message || "Bulk student service failed"] }, 500);
   }
 });
