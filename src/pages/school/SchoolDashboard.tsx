@@ -35,7 +35,8 @@ const SchoolDashboard = () => {
 
           <div className="space-y-2">
               {teachers.map((t) =>
-            <div key={t.id} className="flex items-center justify-between py-1 cursor-pointer hover:bg-white/5 rounded px-2 -mx-2" onClick={() => navigate("/dashboard/teachers")}>
+            <div key={t.id} className="flex items-center justify-between py-1 cursor-pointer hover:bg-white/5 rounded px-2 -mx-2" onClick={() => navigate(`/dashboard/teachers?focus=${t.id}`)}>
+
                   <span className="text-sm text-white font-body font-semibold">{t.firstName} {t.lastName}</span>
                   <span className="text-xs text-white/80 font-semibold">{t.classes.length} classes</span>
                 </div>
