@@ -268,10 +268,10 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
         const { data: bulkResult, error: bulkError } = await invokeBulkStudents(slice);
         if (bulkError) {
           const detail = await getInvokeErrorDetail(bulkError, bulkResult);
-          const staleMessage = detail?.toLowerCase?.().includes("insufficient permissions")
-            ? "Bulk upload service is still running an old permission version. Please retry after the latest function deploy finishes."
+          const uploadMessage = detail?.toLowerCase?.().includes("insufficient permissions")
+            ? "Student creation was blocked by the backend. Please retry after the latest update finishes."
             : detail;
-          toast.error(`Bulk creation failed: ${staleMessage}`);
+          toast.error(`Bulk creation failed: ${uploadMessage}`);
           setUploading(false);
           return;
         }
