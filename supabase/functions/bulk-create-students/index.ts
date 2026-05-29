@@ -117,7 +117,8 @@ Deno.serve(async (req) => {
         results.push({ ...studentRow, email });
       } catch (error: any) {
         if (createdAuthUser && userId) await adminClient.auth.admin.deleteUser(userId);
-        errors.push(`${email || "row"}: ${error?.message || "unknown error"}`);
+        const message = String(error?.message || "unknown error").replace(/insufficient permissions/ig, "student database write was blocked by server configuration");
+        errors.push(`${email || "row"}: ${message}`);
       }
     };
 
