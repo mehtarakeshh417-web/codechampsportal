@@ -103,7 +103,11 @@ const SchoolStudents = () => {
             schoolId={schoolId}
             teachers={teachers.map((t) => ({ id: t.id, firstName: t.firstName, lastName: t.lastName, classes: t.classes }))}
             sections={SECTION_OPTIONS}
-            onComplete={(rows) => { mergeStudents(rows || []); refreshData(); }}
+            onComplete={(rows) => {
+              const created = rows || [];
+              mergeStudents(created);
+              window.setTimeout(() => { refreshData().then(() => mergeStudents(created)); }, 600);
+            }}
           />
           <Button variant="hero" size="xl" onClick={handleAddClick}><Plus className="w-6 h-6 mr-2" /> Add Student</Button>
         </div>

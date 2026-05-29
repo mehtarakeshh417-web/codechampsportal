@@ -26,6 +26,7 @@ const TeacherStudents = () => {
   const mySections = Array.from(new Set(myCombined.map((c) => c.split("-")[1]?.trim()).filter(Boolean))); // ["E","F","A"]
   const school = teacher ? schools.find((s) => s.id === teacher.schoolId) : undefined;
   const schoolUserId = school?.user_id || teacher?.schoolId || "";
+  const actualSchoolId = teacher?.schoolId || school?.id || schoolUserId;
   const SECTION_OPTIONS = mySections.length ? mySections : (school?.sections?.length ? school.sections : (getSchool(schoolUserId)?.sections || DEFAULT_SECTIONS));
   const students = getTeacherStudents(user?.id || "");
 
@@ -86,13 +87,17 @@ const TeacherStudents = () => {
         </div>
         <div className="flex gap-3 flex-wrap">
           <BulkStudentUpload
-            schoolId={schoolUserId}
+            schoolId={actualSchoolId}
             teachers={[{ id: teacher.id, firstName: teacher.firstName, lastName: teacher.lastName, classes: teacher.classes }]}
             sections={SECTION_OPTIONS}
             allowedClasses={myClasses}
             allowedSections={SECTION_OPTIONS}
             defaultTeacherId={teacher.id}
-            onComplete={(rows) => { mergeStudents(rows || []); refreshData(); }} />
+            onComplete={(rows) => {
+              const created = rows || [];
+              mergeStudents(created);
+              window.setTimeout(() => { refreshData().then(() => mergeStudents(created)); }, 600);
+            }} />
 
 
           <Button variant="hero" size="xl" onClick={() => setShowForm(true)} disabled={myClasses.length === 0}>
