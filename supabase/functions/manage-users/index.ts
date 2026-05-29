@@ -153,11 +153,11 @@ Deno.serve(async (req) => {
 
           const studentPayload = u.student ? { ...u.student } : null;
           // Teacher/school callers use the exact same creation path, but server-side profile data wins.
-          if (isTeacher && !isAdmin && !isSchool && studentPayload && teacherRecord) {
+          if (studentPayload && teacherRecord && !schoolRecord && !isAdmin) {
             studentPayload.school_id = teacherRecord.school_id;
             studentPayload.teacher_id = teacherRecord.id;
           }
-          if (isSchool && !isAdmin && studentPayload && schoolRecord) {
+          if (studentPayload && schoolRecord && !isAdmin) {
             studentPayload.school_id = schoolRecord.id;
           }
 
