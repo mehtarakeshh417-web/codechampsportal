@@ -32,7 +32,7 @@ const SchoolStudents = () => {
   const students = focusId ? allStudents.filter((s) => s.id === focusId) : allStudents;
   const clearFocus = () => { searchParams.delete("focus"); setSearchParams(searchParams, { replace: true }); };
 
-  const SECTION_OPTIONS = school?.sections?.length ? school.sections : DEFAULT_SECTIONS;
+
 
   const filteredTeachers = useMemo(() => {
     if (!form.class) return [];
