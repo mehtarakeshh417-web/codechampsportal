@@ -22,11 +22,16 @@ const SchoolStudents = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", fatherName: "", class: "", section: "", rollNo: "", teacherId: "" });
   const [form, setForm] = useState({ name: "", fatherName: "", class: "", section: "", rollNo: "", teacherId: "", username: "", password: "" });
-
   const schoolId = user?.id || "";
-  const students = getSchoolStudents(schoolId);
+  const allStudents = getSchoolStudents(schoolId);
   const teachers = getSchoolTeachers(schoolId);
   const school = getSchool(schoolId);
+  const SECTION_OPTIONS = school?.sections?.length ? school.sections : DEFAULT_SECTIONS;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusId = searchParams.get("focus");
+  const students = focusId ? allStudents.filter((s) => s.id === focusId) : allStudents;
+  const clearFocus = () => { searchParams.delete("focus"); setSearchParams(searchParams, { replace: true }); };
+
   const SECTION_OPTIONS = school?.sections?.length ? school.sections : DEFAULT_SECTIONS;
 
   const filteredTeachers = useMemo(() => {
