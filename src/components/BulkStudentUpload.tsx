@@ -29,7 +29,7 @@ interface ParsedRow {
 }
 
 const CLASS_OPTIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
-const BULK_STUDENTS_VERSION = "bulk-students-v2-20260529";
+const BULK_STUDENTS_VERSION = "bulk-create-students-20260529";
 
 const toHex = (value: string) => Array.from(new TextEncoder().encode(value))
   .map((byte) => byte.toString(16).padStart(2, "0"))
@@ -241,8 +241,8 @@ const BulkStudentUpload = ({ schoolId, teachers, sections, onComplete, allowedCl
       const CHUNK = 8;
       for (let i = 0; i < usersPayload.length; i += CHUNK) {
         const slice = usersPayload.slice(i, i + CHUNK);
-        const { data: bulkResult, error: bulkError } = await supabase.functions.invoke("manage-users", {
-          body: { action: "bulk_create_students_v2", users: slice },
+        const { data: bulkResult, error: bulkError } = await supabase.functions.invoke("bulk-create-students", {
+          body: { users: slice },
         });
         if (bulkError) {
           const detail = await getInvokeErrorDetail(bulkError, bulkResult);
