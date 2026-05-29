@@ -72,7 +72,8 @@ const generatePassword = () => Math.random().toString(36).slice(-8);
 const mapSchool = (s: any): SchoolData => ({
   id: s.id, user_id: s.user_id, name: s.name,
   address: s.address || "", state: s.state || "", city: s.city || "",
-  phone: s.phone || "", logo: s.logo, sections: s.sections && s.sections.length > 1 ? s.sections : ["A", "B", "C", "D", "E"],
+  phone: s.phone || "", logo: s.logo, sections: Array.isArray(s.sections) && s.sections.length > 0 ? s.sections : ["A", "B", "C", "D", "E"],
+
   createdAt: s.created_at,
 });
 const mapTeacher = (t: any): TeacherData => ({

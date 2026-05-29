@@ -169,10 +169,31 @@ const TeacherStudents = () => {
             <motion.div key={s.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }} className="glass-card p-4">
               {editingId === s.id ? (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="Name" className="bg-white/10 border-white/20 text-white" />
-                    <Input value={editForm.fatherName} onChange={(e) => setEditForm({ ...editForm, fatherName: e.target.value })} placeholder="Father's name" className="bg-white/10 border-white/20 text-white" />
-                    <Input value={editForm.rollNo} onChange={(e) => setEditForm({ ...editForm, rollNo: e.target.value })} placeholder="Roll No" className="bg-white/10 border-white/20 text-white" />
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">Student Name</Label>
+                      <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="bg-white/10 border-white/20 text-white" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">Father's Name</Label>
+                      <Input value={editForm.fatherName} onChange={(e) => setEditForm({ ...editForm, fatherName: e.target.value })} className="bg-white/10 border-white/20 text-white" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">Class</Label>
+                      <select value={editForm.class} onChange={(e) => setEditForm({ ...editForm, class: e.target.value })} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
+                        {myClasses.map((c) => <option key={c} value={c} className="bg-cyber-dark">{c}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">Section</Label>
+                      <select value={editForm.section} onChange={(e) => setEditForm({ ...editForm, section: e.target.value })} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
+                        {SECTION_OPTIONS.map((sec) => <option key={sec} value={sec} className="bg-cyber-dark">{sec}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">Roll No</Label>
+                      <Input value={editForm.rollNo} onChange={(e) => setEditForm({ ...editForm, rollNo: e.target.value })} className="bg-white/10 border-white/20 text-white" />
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="hero" onClick={() => saveEdit(s.id)}>Save</Button>
@@ -180,6 +201,7 @@ const TeacherStudents = () => {
                   </div>
                 </div>
               ) : (
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <span className="font-body font-bold text-white">{s.name}</span>

@@ -39,9 +39,7 @@ const SchoolStudents = () => {
       return;
     }
     setIsSubmitting(true);
-    const customUsername = form.username.trim();
-    const customPassword = form.password.trim();
-    const student = await addStudent({ ...form, schoolId }, customUsername, customPassword);
+    const student = await addStudent({ ...form, schoolId }, form.username.trim(), form.password.trim());
     if (student) {
       toast.success(`Student created! Username: ${student.username} | Password: ${student.password}`);
       setForm({ name: "", fatherName: "", class: "", section: "", rollNo: "", teacherId: "", username: "", password: "" });
@@ -98,23 +96,23 @@ const SchoolStudents = () => {
             schoolId={schoolId}
             teachers={teachers.map((t) => ({ id: t.id, firstName: t.firstName, lastName: t.lastName, classes: t.classes }))}
             sections={SECTION_OPTIONS}
-            onComplete={() => refreshData()} />
-          
+            onComplete={() => refreshData()}
+          />
           <Button variant="hero" size="xl" onClick={handleAddClick}><Plus className="w-6 h-6 mr-2" /> Add Student</Button>
         </div>
       </motion.div>
 
-      {teachers.length === 0 &&
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 rounded-xl bg-destructive/15 border border-destructive/30 flex items-center gap-3">
+      {teachers.length === 0 && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 rounded-xl bg-destructive/15 border border-destructive/30 flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
           <p className="text-sm font-body text-white/80">
             <strong className="text-destructive">No teachers found.</strong> You must create at least one teacher before enrolling students.
           </p>
         </motion.div>
-      }
+      )}
 
-      {showForm &&
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 mb-8">
+      {showForm && (
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-lg font-bold text-white">New Student</h2>
             <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}><X className="w-5 h-5" /></Button>
@@ -167,31 +165,61 @@ const SchoolStudents = () => {
             </div>
           </form>
         </motion.div>
-      }
+      )}
 
-      {students.length === 0 ?
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-12 text-center">
+      {students.length === 0 ? (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-12 text-center">
           <GraduationCap className="w-16 h-16 text-white/30 mx-auto mb-4" />
           <p className="text-white/50 font-body">No students enrolled yet</p>
-        </motion.div> :
-
-      <div className="space-y-2">
-          {students.map((s, i) =>
-        <motion.div key={s.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }} className="glass-card p-4">
-              {editingId === s.id ?
-          <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="Name" className="bg-white/10 border-white/20 text-white" />
-                    <Input value={editForm.fatherName} onChange={(e) => setEditForm({ ...editForm, fatherName: e.target.value })} placeholder="Father's name" className="bg-white/10 border-white/20 text-white" />
-                    <Input value={editForm.rollNo} onChange={(e) => setEditForm({ ...editForm, rollNo: e.target.value })} placeholder="Roll No" className="bg-white/10 border-white/20 text-white" />
+        </motion.div>
+      ) : (
+        <div className="space-y-2">
+          {students.map((s, i) => (
+            <motion.div key={s.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }} className="glass-card p-4">
+              {editingId === s.id ? (
+                <div className="space-y-3">
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">Student Name</Label>
+                      <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="bg-white/10 border-white/20 text-white" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">Father's Name</Label>
+                      <Input value={editForm.fatherName} onChange={(e) => setEditForm({ ...editForm, fatherName: e.target.value })} className="bg-white/10 border-white/20 text-white" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">Class</Label>
+                      <select value={editForm.class} onChange={(e) => setEditForm({ ...editForm, class: e.target.value, teacherId: "" })} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
+                        {CLASS_OPTIONS.map((c) => <option key={c} value={c} className="bg-cyber-dark">{c}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">Section</Label>
+                      <select value={editForm.section} onChange={(e) => setEditForm({ ...editForm, section: e.target.value })} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
+                        {SECTION_OPTIONS.map((sec) => <option key={sec} value={sec} className="bg-cyber-dark">{sec}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">Roll No</Label>
+                      <Input value={editForm.rollNo} onChange={(e) => setEditForm({ ...editForm, rollNo: e.target.value })} className="bg-white/10 border-white/20 text-white" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-white/70 text-xs">Assign Teacher</Label>
+                      <select value={editForm.teacherId} onChange={(e) => setEditForm({ ...editForm, teacherId: e.target.value })} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
+                        <option value="" className="bg-cyber-dark">Unassigned</option>
+                        {teachers.filter((t) => !editForm.class || t.classes.some((c) => c.startsWith(editForm.class))).map((t) => (
+                          <option key={t.id} value={t.id} className="bg-cyber-dark">{t.firstName} {t.lastName}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="hero" onClick={() => saveEdit(s.id)}>Save</Button>
                     <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
                   </div>
-                </div> :
-
-          <div className="flex items-center justify-between">
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <span className="font-body font-bold text-white">{s.name}</span>
                   </div>
@@ -209,13 +237,13 @@ const SchoolStudents = () => {
                     </Button>
                   </div>
                 </div>
-          }
+              )}
             </motion.div>
-        )}
+          ))}
         </div>
-      }
-    </div>);
-
+      )}
+    </div>
+  );
 };
 
 export default SchoolStudents;
