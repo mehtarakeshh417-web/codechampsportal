@@ -218,6 +218,13 @@ const SchoolTeachers = () => {
         </motion.div>
       )}
 
+      {focusId && (
+        <div className="mb-4 flex items-center justify-between glass-card p-3">
+          <span className="text-sm text-white/80 font-body">Viewing single teacher profile</span>
+          <Button variant="ghost" size="sm" onClick={clearFocus}>Show all teachers</Button>
+        </div>
+      )}
+
       {teachers.length === 0 ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-12 text-center">
           <Users className="w-16 h-16 text-white/30 mx-auto mb-4" />
