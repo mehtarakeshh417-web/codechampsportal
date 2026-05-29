@@ -121,15 +121,6 @@ Deno.serve(async (req) => {
     if (action === "create_users_bulk") {
       const { users } = body;
 
-      // Ultra-permissive auth: any authenticated admin OR school OR teacher can bulk-create students.
-      // If none of those profiles exist, give a diagnostic error so the user knows exactly why.
-      if (!isAdmin && !isSchool && !isTeacher) {
-        return jsonResponse({
-          error: `Insufficient permissions — caller ${caller.email || caller.id} has no admin/school/teacher profile. ` +
-                 `Diagnostics: roles=[${[...roles].join(",")}], teacher_row=${!!tRow}, school_row=${!!sRow}, student_row=${!!stRow}`,
-        }, 403);
-      }
-
       const results: any[] = [];
       const errors: string[] = [];
 
@@ -154,19 +145,18 @@ Deno.serve(async (req) => {
             errors.push(`${email}: password is required`);
             return;
           }
-          // Only role-scoping; permission already passed
-          if (isTeacher && !isAdmin && !isSchool && role !== "student") {
-            errors.push(`${email}: teachers can only create students`);
+          if (role !== "student") {
+            errors.push(`${email}: bulk upload can only create students`);
             return;
           }
 
           const studentPayload = u.student ? { ...u.student } : null;
-          // Teacher caller: force scope to their school + themselves
+          // Teacher/school callers use the exact same creation path. If profile rows are available,
+          // lock the payload to that profile; otherwise use the school_id/teacher_id sent by the UI.
           if (isTeacher && !isAdmin && !isSchool && studentPayload && teacherRecord) {
             studentPayload.school_id = teacherRecord.school_id;
             studentPayload.teacher_id = teacherRecord.id;
           }
-          // School caller: force school_id to their school
           if (isSchool && !isAdmin && studentPayload && schoolRecord) {
             studentPayload.school_id = schoolRecord.id;
           }
