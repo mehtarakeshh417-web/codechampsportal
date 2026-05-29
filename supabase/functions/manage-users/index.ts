@@ -48,20 +48,6 @@ Deno.serve(async (req) => {
     if (callerError || !caller) {
       return jsonResponse({ error: "Unauthorized" }, 401);
     }
-    // Verify the caller is authenticated
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return jsonResponse({ error: "No authorization header" }, 401);
-    }
-
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user: caller }, error: callerError } = await callerClient.auth.getUser();
-    if (callerError || !caller) {
-      return jsonResponse({ error: "Unauthorized" }, 401);
-    }
 
     // Load all signals in parallel: existing roles + direct profile rows.
     // We treat presence of a teachers/schools/students row as authoritative,
