@@ -260,7 +260,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data.teacherId !== undefined) dbData.teacher_id = data.teacherId;
     await supabase.from("students").update(dbData).eq("id", studentId);
     await fetchData();
+  }, [fetchData]);
+
   const logDeletion = useCallback((entryType: "student" | "teacher", schoolId: string, displayName: string, username: string | undefined, details: Record<string, any>) => {
+
     if (!schoolId) return;
     const list = loadDeleted(schoolId);
     list.unshift({
