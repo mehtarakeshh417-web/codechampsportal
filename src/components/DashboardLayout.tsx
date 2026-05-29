@@ -34,6 +34,8 @@ const navConfig: Record<UserRole, NavItem[]> = {
     { icon: BarChart3, label: "Analytics", path: "/dashboard/analytics" },
     { icon: Megaphone, label: "Announcements", path: "/dashboard/announcements" },
     { icon: Settings, label: "Settings", path: "/dashboard/settings" },
+    { icon: Trash2, label: "Deleted Entries", path: "/dashboard/deleted" },
+
   ],
   teacher: [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
