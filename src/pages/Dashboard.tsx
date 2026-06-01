@@ -75,7 +75,7 @@ const teacherRoutes = (
   <>
     <Route index element={<TeacherDashboard />} />
     <Route path="classes" element={<TeacherClasses />} />
-    <Route path="students" element={<TeacherStudents />} />
+    
     <Route path="assignments" element={<TeacherAssignments />} />
     <Route path="projects" element={<TeacherProjects />} />
     <Route path="curriculum" element={<TeacherCurriculum />} />
