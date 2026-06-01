@@ -41,7 +41,6 @@ const navConfig: Record<UserRole, NavItem[]> = {
   teacher: [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: BookOpen, label: "My Classes", path: "/dashboard/classes" },
-    { icon: GraduationCap, label: "Students", path: "/dashboard/students" },
     { icon: FileText, label: "Assignments", path: "/dashboard/assignments" },
     { icon: Code, label: "Projects", path: "/dashboard/projects" },
     { icon: GraduationCap, label: "Curriculum", path: "/dashboard/curriculum" },
