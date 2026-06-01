@@ -29,7 +29,7 @@ import TeacherAnalytics from "./teacher/TeacherAnalytics";
 import TeacherStudentProgress from "./teacher/TeacherStudentProgress";
 import TeacherAttendance from "./teacher/TeacherAttendance";
 import TeacherDiscussions from "./teacher/TeacherDiscussions";
-import TeacherStudents from "./teacher/TeacherStudents";
+
 import ChangePassword from "./shared/ChangePassword";
 import StudentDashboard from "./student/StudentDashboard";
 import StudentCurriculum from "./student/StudentCurriculum";
@@ -75,7 +75,7 @@ const teacherRoutes = (
   <>
     <Route index element={<TeacherDashboard />} />
     <Route path="classes" element={<TeacherClasses />} />
-    <Route path="students" element={<TeacherStudents />} />
+    
     <Route path="assignments" element={<TeacherAssignments />} />
     <Route path="projects" element={<TeacherProjects />} />
     <Route path="curriculum" element={<TeacherCurriculum />} />
