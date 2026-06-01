@@ -19,9 +19,11 @@ interface ClientStudentBulkUploadProps {
 
 interface ParsedRow {
   name: string;
-  email: string;
-  password: string;
   className: string;
+  section: string;
+  rollNo: string;
+  username: string;
+  password: string;
   error?: string;
 }
 
@@ -30,7 +32,7 @@ const DEFAULT_CLASSES = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th",
 const readCell = (row: Record<string, unknown>, ...keys: string[]) => {
   for (const key of keys) {
     const value = row[key];
-    if (value !== undefined && value !== null) return String(value).trim();
+    if (value !== undefined && value !== null && String(value).trim() !== "") return String(value).trim();
   }
   return "";
 };
@@ -46,7 +48,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
   const [summary, setSummary] = useState<string | null>(null);
 
   const validClasses = (allowedClasses?.length ? allowedClasses : DEFAULT_CLASSES).map(normalizeClass);
-  const defaultSection = allowedSections?.[0] || sections[0] || "A";
+  const validSections = allowedSections?.length ? allowedSections : sections;
 
   const getActualSchoolId = async () => {
     const { data: school } = await supabase.from("schools").select("id").eq("user_id", schoolId).maybeSingle();
@@ -55,11 +57,11 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
 
   const downloadTemplate = () => {
     const worksheet = XLSX.utils.aoa_to_sheet([
-      ["Name", "Email", "Password", "Class"],
-      ["Rahul Kumar", "rahul.kumar@example.com", "pass123", validClasses[0] || "3rd"],
-      ["Priya Singh", "priya.singh@example.com", "pass123", validClasses[1] || "5th"],
+      ["Student Name", "Class", "Section", "Roll No", "Username", "Password"],
+      ["Rahul Kumar", validClasses[0] || "3rd", validSections[0] || "A", "1", "rahul01", "pass123"],
+      ["Priya Singh", validClasses[1] || "5th", validSections[0] || "A", "2", "priya02", "pass123"],
     ]);
-    worksheet["!cols"] = [{ wch: 24 }, { wch: 30 }, { wch: 18 }, { wch: 14 }];
+    worksheet["!cols"] = [{ wch: 24 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 14 }];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
     XLSX.writeFile(workbook, "student_onboarding_template.xlsx");
@@ -78,17 +80,21 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: "" });
         const parsed = data.map((item) => {
-          const name = readCell(item, "Name", "Student Name", "StudentName", "name");
-          const email = readCell(item, "Email", "Username", "User Name", "email", "username");
-          const password = readCell(item, "Password", "Pass", "password");
+          const name = readCell(item, "Student Name", "Name", "StudentName", "name");
           const rawClass = readCell(item, "Class", "class", "Grade", "grade");
           const className = normalizeClass(rawClass);
+          const section = readCell(item, "Section", "section", "Sec");
+          const rollNo = readCell(item, "Roll No", "Roll No.", "RollNo", "Roll Number", "Roll", "roll_no");
+          const username = readCell(item, "Username", "User Name", "username");
+          const password = readCell(item, "Password", "Pass", "password");
           const errors: string[] = [];
           if (!name) errors.push("Name required");
-          if (!email) errors.push("Email required");
-          if (!password) errors.push("Password required");
           if (!className || !validClasses.includes(className)) errors.push(`Invalid class ${rawClass || "blank"}`);
-          return { name, email, password, className, error: errors.join(", ") || undefined };
+          if (!section) errors.push("Section required");
+          if (!rollNo) errors.push("Roll No required");
+          if (!username) errors.push("Username required");
+          if (!password) errors.push("Password required");
+          return { name, className, section, rollNo, username, password, error: errors.join(", ") || undefined };
         });
         setRows(parsed);
         if (parsed.length === 0) toast.error("No rows found in the file");
@@ -118,7 +124,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
       const tenantId = actualSchoolId;
       const authAccounts = [];
       for (const row of validRows) {
-        const account = await createStudentAuthAccount(row.email, row.password, row.name);
+        const account = await createStudentAuthAccount(row.username, row.password, row.name);
         authAccounts.push(account);
       }
 
@@ -135,8 +141,8 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
           name: row.name,
           father_name: "",
           class: row.className,
-          section: defaultSection,
-          roll_no: "",
+          section: row.section,
+          roll_no: row.rollNo,
           xp: 0,
           progress: 0,
         };
@@ -150,7 +156,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
 
       const createdRows = (insertResult.data || []).map((student: any, index: number) => ({
         ...student,
-        username: validRows[index]?.email || "",
+        username: validRows[index]?.username || "",
         password: validRows[index]?.password || "",
       }));
 
@@ -180,11 +186,11 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
       </Button>
 
       {open && (
-        <div className="glass-card p-5 mt-4 space-y-4 absolute right-0 z-20 w-[min(92vw,34rem)]">
+        <div className="glass-card p-5 mt-4 space-y-4 absolute right-0 z-20 w-[min(92vw,38rem)]">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="font-display text-lg font-bold text-foreground">Student Upload</h2>
-              <p className="font-body text-sm text-muted-foreground">Template columns: Name, Email, Password, Class.</p>
+              <p className="font-body text-sm text-muted-foreground">Columns: Student Name, Class, Section, Roll No, Username, Password.</p>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setOpen(false)}><X className="w-5 h-5" /></Button>
           </div>
@@ -211,17 +217,21 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
                   <thead className="bg-muted sticky top-0">
                     <tr className="text-muted-foreground">
                       <th className="px-2 py-2 text-left">Name</th>
-                      <th className="px-2 py-2 text-left">Email</th>
                       <th className="px-2 py-2 text-left">Class</th>
+                      <th className="px-2 py-2 text-left">Sec</th>
+                      <th className="px-2 py-2 text-left">Roll</th>
+                      <th className="px-2 py-2 text-left">Username</th>
                       <th className="px-2 py-2 text-left">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((row, index) => (
-                      <tr key={`${row.email}-${index}`} className="border-t border-border">
+                      <tr key={`${row.username}-${index}`} className="border-t border-border">
                         <td className="px-2 py-2 text-foreground">{row.name}</td>
-                        <td className="px-2 py-2 text-muted-foreground">{row.email}</td>
                         <td className="px-2 py-2 text-muted-foreground">{row.className}</td>
+                        <td className="px-2 py-2 text-muted-foreground">{row.section}</td>
+                        <td className="px-2 py-2 text-muted-foreground">{row.rollNo}</td>
+                        <td className="px-2 py-2 text-muted-foreground">{row.username}</td>
                         <td className={row.error ? "px-2 py-2 text-destructive" : "px-2 py-2 text-primary"}>{row.error || "Ready"}</td>
                       </tr>
                     ))}
