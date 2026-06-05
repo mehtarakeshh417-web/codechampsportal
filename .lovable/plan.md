@@ -1,51 +1,38 @@
-I found two concrete failure paths to fix instead of retrying the same patch:
+## Why the error happens
 
-1. The visible error text `Bulk creation failed: Insufficient permissions` is not present anywhere in the current local `manage-users` source. That means the app is still hitting a stale/deployed permission path or a frontend path that surfaces an older function response. I will replace the bulk upload call with a clean, versioned action path and make the function response include a version marker so the UI cannot silently use the old behavior.
+The toast "Request rate limit reached" comes from Supabase Auth, not from our database. The bulk uploader currently calls `createStudentAuthAccount()` once per row inside a tight `for` loop (see `src/components/ClientStudentBulkUpload.tsx` lines 126–129). Each call hits `auth.signUp` on the GoTrue endpoint.
 
-2. Dashboard counts depend only on `students` rows in `DataContext`. If bulk upload returns auth users, partial rows, or stale rows instead of real `students` table records, `mergeStudents()` cannot count them because `school_id` / `teacher_id` are missing. I will make bulk creation return normalized student rows and also refetch by created IDs from the database before merging into dashboard state.
+Supabase enforces a hard rate limit on `/auth/v1/signup` (default ~30 sign‑ups per hour per IP on hosted projects, and a per‑second burst limit). For 36 rows the burst limit trips almost immediately — the screenshot shows the loop firing as fast as the browser can, so GoTrue rejects further sign‑ups with HTTP 429 "Request rate limit reached". Because the loop aborts on the first thrown error, none of the 36 students get inserted into the `students` table.
 
-Implementation plan:
+There is nothing wrong with the spreadsheet, RLS, or the insert step — it is purely a sign‑up throttling problem.
 
-- Update `supabase/functions/manage-users/index.ts`
-  - Add a new action name for student bulk upload, e.g. `bulk_create_students_v2`, to bypass any stale `create_users_bulk` permission branch.
-  - Allow authenticated school and teacher profiles to create students through the exact same code path.
-  - For teacher callers, resolve `teachers.user_id = caller.id` server-side and force `school_id` and `teacher_id` from that teacher record.
-  - For school callers, resolve `schools.user_id = caller.id` server-side and force `school_id` from that school record.
-  - Use service-role client only for actual Auth user + student row creation, so RLS does not block teachers.
-  - Return `{ ok, version, students, errors }` where `students` are actual `students` table rows, not auth user objects.
-  - Remove/avoid all “Insufficient permissions” responses for this bulk student path; return specific diagnostics like `Teacher profile not found` only if the logged-in teacher has no teacher row.
+## How to fix it
 
-- Update `src/components/BulkStudentUpload.tsx`
-  - Call the new action `bulk_create_students_v2` instead of the old action.
-  - Treat only returned `students` rows as successful created students.
-  - If the old/stale response comes back without the version marker, show a clear deployment/version mismatch error instead of silently failing.
-  - After upload, fetch/merge the exact created rows and pass them to `onComplete`.
+Make the uploader respect the auth rate limit and keep the user informed:
 
-- Update `src/contexts/DataContext.tsx`
-  - Make `mapStudent()` tolerate both database snake_case rows and already-normalized camelCase rows.
-  - Add a `refreshStudents()` or strengthen `refreshData()`/`mergeStudents()` so newly created bulk rows immediately update `students` state with correct `schoolId` and `teacherId`.
-  - Keep dashboard counts derived from the same canonical `students` state.
+1. **Throttle sign‑ups.** Replace the tight loop with a controlled queue: process rows in small chunks (e.g. 5 at a time) and add a delay between chunks (e.g. 1.2s) so we stay well under the per‑second burst limit. Use sequential awaits inside each chunk to avoid parallel `signUp` storms.
+2. **Retry on 429.** Wrap each `createStudentAuthAccount` call in a retry helper that detects `rate limit` / status 429 in the error message and waits with exponential backoff (e.g. 2s → 4s → 8s, max 3 retries) before giving up on that row.
+3. **Per‑row error isolation.** Catch sign‑up failures per row instead of aborting the whole batch. Mark the failing row's status as "Failed: <reason>" in the table, keep its data visible, and continue with the remaining rows. Only insert into `students` for rows whose auth account succeeded.
+4. **Live progress UI.** Show "Creating X of N…" on the Create button and update each row's Status column from "Ready" → "Creating" → "Created"/"Failed" so the user can see progress for large batches (36+).
+5. **Resumable retry.** After the run, if some rows failed, leave only the failed rows in the table and enable a "Retry failed" action that re‑runs only those rows.
+6. **Optional: warn for very large batches.** If `validRows.length > 30`, show a non‑blocking toast: "Large batch — this will take ~1 minute due to sign‑up limits" so users don't think it has hung.
 
-- Update `src/pages/school/SchoolStudents.tsx` and `src/pages/teacher/TeacherStudents.tsx`
-  - After bulk upload, merge returned rows immediately.
-  - Then run a real background refresh and merge again so dashboard count becomes manual + bulk count, e.g. `1 + 25 = 26`.
+No DB schema, RLS, or edge function changes are needed. Only `src/components/ClientStudentBulkUpload.tsx` (and a tiny helper in `src/lib/studentAccounts.ts` for the retry wrapper) need to change.
 
-- Add a database migration for final safety
-  - Ensure `students`, `teachers`, `schools`, and `user_roles` have authenticated/service-role grants needed by the app.
-  - Keep teacher student management scoped to their own school/teacher record, but the edge function will no longer depend on teacher RLS for bulk inserts.
+## Expected behavior after the fix
 
-Validation I will perform after implementation:
+- Uploading 36 students completes successfully in ~30–60s without hitting the rate limit.
+- If a sign‑up still 429s after retries, only that specific row is marked Failed; all other students are created and visible immediately (cache invalidation already in place).
+- The user sees per‑row status and can re‑run only failed rows without re‑uploading the file.
+- Students can log in with the username/password from the spreadsheet exactly as today.
 
-- Confirm the old text `Insufficient permissions` no longer exists in the repo bulk path.
-- Confirm teacher bulk upload calls the new action.
-- Confirm the edge function returns real student rows with `school_id` and `teacher_id`.
-- Confirm `mergeStudents()` maps those rows into `schoolId`/`teacherId`.
-- Confirm dashboards count from the same merged state.
+## Technical details
 
-<presentation-actions>
-  <presentation-open-history>View History</presentation-open-history>
-</presentation-actions>
-
-<presentation-actions>
-<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
-</presentation-actions>
+- File: `src/components/ClientStudentBulkUpload.tsx` — refactor `createStudents()`:
+  - Add `CHUNK_SIZE = 5`, `CHUNK_DELAY_MS = 1200`.
+  - Add `signUpWithRetry(row)` that calls `createStudentAuthAccount` and retries on `/rate limit|429/i` with `[2000, 4000, 8000]` ms backoff.
+  - Track `status` per row in React state: `ready | creating | created | failed` plus optional `errorMessage`.
+  - Build `studentRows` only from successfully signed‑up rows; insert them in one `supabase.from("students").insert(...).select()` call (existing logic kept).
+  - Keep existing `stripContextColumns` fallback and `queryClient.invalidateQueries` calls.
+- File: `src/lib/studentAccounts.ts` — optionally export a small `sleep(ms)` helper used by the retry wrapper; no behavior change to `createStudentAuthAccount`.
+- No migration, no edge function, no config changes.
