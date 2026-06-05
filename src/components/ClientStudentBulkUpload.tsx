@@ -296,7 +296,9 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
                         <td className="px-2 py-2 text-muted-foreground">{row.section}</td>
                         <td className="px-2 py-2 text-muted-foreground">{row.rollNo}</td>
                         <td className="px-2 py-2 text-muted-foreground">{row.username}</td>
-                        <td className={row.error ? "px-2 py-2 text-destructive" : "px-2 py-2 text-primary"}>{row.error || "Ready"}</td>
+                        <td className={row.error || row.status === "failed" ? "px-2 py-2 text-destructive" : row.status === "created" ? "px-2 py-2 text-primary" : row.status === "creating" ? "px-2 py-2 text-muted-foreground" : "px-2 py-2 text-primary"}>
+                          {row.error || (row.status === "failed" ? `Failed: ${row.statusMessage || "error"}` : row.status === "creating" ? "Creating…" : row.status === "created" ? "Created" : "Ready")}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
