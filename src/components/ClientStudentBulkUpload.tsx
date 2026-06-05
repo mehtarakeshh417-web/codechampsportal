@@ -17,6 +17,8 @@ interface ClientStudentBulkUploadProps {
   defaultTeacherId?: string;
 }
 
+type RowStatus = "ready" | "creating" | "created" | "failed";
+
 interface ParsedRow {
   name: string;
   className: string;
@@ -25,7 +27,15 @@ interface ParsedRow {
   username: string;
   password: string;
   error?: string;
+  status?: RowStatus;
+  statusMessage?: string;
 }
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const CHUNK_SIZE = 5;
+const CHUNK_DELAY_MS = 1200;
+const RETRY_BACKOFFS = [2000, 4000, 8000];
+const isRateLimitError = (error: any) => /rate limit|429|too many/i.test(error?.message || error?.error_description || "");
 
 const DEFAULT_CLASSES = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 
