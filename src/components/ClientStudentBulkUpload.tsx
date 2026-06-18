@@ -233,20 +233,12 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
 
       const studentRows = signed.map(({ index, userId }) => {
         const row = rows[index];
-        const teacher = defaultTeacherId
-          ? teachers.find((item) => item.id === defaultTeacherId)
-          : teachers.find((item) =>
-              item.classes.some((tc) => {
-                const [cls, sec] = tc.split("-");
-                return normalizeClass(cls) === row.className && (sec || "A") === row.section;
-              }),
-            );
         return {
           user_id: userId,
           school_id: actualSchoolId,
           tenant_id: tenantId,
           created_by: createdBy,
-          teacher_id: teacher?.id || null,
+          teacher_id: row.resolvedTeacherId || defaultTeacherId || null,
           name: row.name,
           father_name: "",
           class: row.className,
