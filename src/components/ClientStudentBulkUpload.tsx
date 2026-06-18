@@ -182,7 +182,12 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
         const row = rows[index];
         const teacher = defaultTeacherId
           ? teachers.find((item) => item.id === defaultTeacherId)
-          : teachers.find((item) => item.classes.some((teacherClass) => normalizeClass(teacherClass) === row.className || teacherClass.startsWith(row.className)));
+          : teachers.find((item) =>
+              item.classes.some((tc) => {
+                const [cls, sec] = tc.split("-");
+                return normalizeClass(cls) === row.className && (sec || "A") === row.section;
+              }),
+            );
         return {
           user_id: userId,
           school_id: actualSchoolId,
@@ -198,6 +203,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
           progress: 0,
         };
       });
+
 
       let insertResult = await supabase.from("students").insert(studentRows as any).select();
       if (insertResult.error && /tenant_id|created_by|schema cache/i.test(insertResult.error.message || "")) {
