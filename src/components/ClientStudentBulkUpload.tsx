@@ -69,11 +69,11 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
 
   const downloadTemplate = () => {
     const worksheet = XLSX.utils.aoa_to_sheet([
-      ["Student Name", "Class", "Section", "Roll No", "Username", "Password"],
-      ["Rahul Kumar", validClasses[0] || "3rd", validSections[0] || "A", "1", "rahul01", "pass123"],
-      ["Priya Singh", validClasses[1] || "5th", validSections[0] || "A", "2", "priya02", "pass123"],
+      ["Student Name", "Class", "Section", "Roll No", "Username", "Password", "Teacher"],
+      ["Rahul Kumar", validClasses[0] || "3rd", validSections[0] || "A", "1", "rahul01", "pass123", ""],
+      ["Priya Singh", validClasses[1] || "5th", validSections[0] || "A", "2", "priya02", "pass123", ""],
     ]);
-    worksheet["!cols"] = [{ wch: 24 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 14 }];
+    worksheet["!cols"] = [{ wch: 24 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 14 }, { wch: 22 }];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
     XLSX.writeFile(workbook, "student_onboarding_template.xlsx");
