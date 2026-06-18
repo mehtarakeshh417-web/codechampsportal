@@ -91,7 +91,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
         const workbook = XLSX.read(loadEvent.target?.result, { type: "binary" });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: "" });
-        const parsed = data.map((item) => {
+        const parsed: ParsedRow[] = data.map((item) => {
           const name = readCell(item, "Student Name", "Name", "StudentName", "name");
           const rawClass = readCell(item, "Class", "class", "Grade", "grade");
           const className = normalizeClass(rawClass);
@@ -99,6 +99,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
           const rollNo = readCell(item, "Roll No", "Roll No.", "RollNo", "Roll Number", "Roll", "roll_no");
           const username = readCell(item, "Username", "User Name", "username");
           const password = readCell(item, "Password", "Pass", "password");
+          const teacherInput = readCell(item, "Teacher", "Teacher Username", "Teacher Name", "teacher");
           const errors: string[] = [];
           if (!name) errors.push("Name required");
           if (!className || !validClasses.includes(className)) errors.push(`Invalid class ${rawClass || "blank"}`);
@@ -106,7 +107,57 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
           if (!rollNo) errors.push("Roll No required");
           if (!username) errors.push("Username required");
           if (!password) errors.push("Password required");
-          return { name, className, section, rollNo, username, password, error: errors.join(", ") || undefined };
+
+          let resolvedTeacherId: string | null = defaultTeacherId || null;
+          if (!resolvedTeacherId) {
+            if (teacherInput) {
+              const needle = teacherInput.trim().toLowerCase();
+              const byUsername = teachers.find((t) => (t as any).username?.toLowerCase?.() === needle);
+              const byFull = teachers.find((t) => `${t.firstName} ${t.lastName}`.trim().toLowerCase() === needle);
+              const byFirstMatches = teachers.filter((t) => t.firstName.trim().toLowerCase() === needle);
+              const byLastMatches = teachers.filter((t) => t.lastName.trim().toLowerCase() === needle);
+              const match =
+                byUsername ||
+                byFull ||
+                (byFirstMatches.length === 1 ? byFirstMatches[0] : undefined) ||
+                (byLastMatches.length === 1 ? byLastMatches[0] : undefined);
+              if (match) {
+                resolvedTeacherId = match.id;
+              } else {
+                errors.push(`Unknown teacher '${teacherInput}'`);
+              }
+            } else if (className && section) {
+              const matches = teachers.filter((t) =>
+                t.classes.some((tc) => {
+                  const [cls, sec] = tc.split("-");
+                  return normalizeClass(cls) === className && (sec || "A") === section;
+                }),
+              );
+              if (matches.length === 1) {
+                resolvedTeacherId = matches[0].id;
+              } else if (matches.length > 1) {
+                errors.push(
+                  `Ambiguous teacher for ${className}-${section} (${matches
+                    .map((m) => `${m.firstName} ${m.lastName}`)
+                    .join(", ")}); fill Teacher column`,
+                );
+              } else {
+                errors.push(`No teacher assigned to ${className}-${section}; fill Teacher column`);
+              }
+            }
+          }
+
+          return {
+            name,
+            className,
+            section,
+            rollNo,
+            username,
+            password,
+            teacherInput,
+            resolvedTeacherId,
+            error: errors.join(", ") || undefined,
+          };
         });
         setRows(parsed);
         if (parsed.length === 0) toast.error("No rows found in the file");
