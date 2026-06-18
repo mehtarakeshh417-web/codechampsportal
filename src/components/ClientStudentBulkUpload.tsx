@@ -26,6 +26,8 @@ interface ParsedRow {
   rollNo: string;
   username: string;
   password: string;
+  teacherInput: string;
+  resolvedTeacherId: string | null;
   error?: string;
   status?: RowStatus;
   statusMessage?: string;
@@ -67,11 +69,11 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
 
   const downloadTemplate = () => {
     const worksheet = XLSX.utils.aoa_to_sheet([
-      ["Student Name", "Class", "Section", "Roll No", "Username", "Password"],
-      ["Rahul Kumar", validClasses[0] || "3rd", validSections[0] || "A", "1", "rahul01", "pass123"],
-      ["Priya Singh", validClasses[1] || "5th", validSections[0] || "A", "2", "priya02", "pass123"],
+      ["Student Name", "Class", "Section", "Roll No", "Username", "Password", "Teacher"],
+      ["Rahul Kumar", validClasses[0] || "3rd", validSections[0] || "A", "1", "rahul01", "pass123", ""],
+      ["Priya Singh", validClasses[1] || "5th", validSections[0] || "A", "2", "priya02", "pass123", ""],
     ]);
-    worksheet["!cols"] = [{ wch: 24 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 14 }];
+    worksheet["!cols"] = [{ wch: 24 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 14 }, { wch: 22 }];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
     XLSX.writeFile(workbook, "student_onboarding_template.xlsx");
@@ -89,7 +91,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
         const workbook = XLSX.read(loadEvent.target?.result, { type: "binary" });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: "" });
-        const parsed = data.map((item) => {
+        const parsed: ParsedRow[] = data.map((item) => {
           const name = readCell(item, "Student Name", "Name", "StudentName", "name");
           const rawClass = readCell(item, "Class", "class", "Grade", "grade");
           const className = normalizeClass(rawClass);
@@ -97,6 +99,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
           const rollNo = readCell(item, "Roll No", "Roll No.", "RollNo", "Roll Number", "Roll", "roll_no");
           const username = readCell(item, "Username", "User Name", "username");
           const password = readCell(item, "Password", "Pass", "password");
+          const teacherInput = readCell(item, "Teacher", "Teacher Username", "Teacher Name", "teacher");
           const errors: string[] = [];
           if (!name) errors.push("Name required");
           if (!className || !validClasses.includes(className)) errors.push(`Invalid class ${rawClass || "blank"}`);
@@ -104,7 +107,57 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
           if (!rollNo) errors.push("Roll No required");
           if (!username) errors.push("Username required");
           if (!password) errors.push("Password required");
-          return { name, className, section, rollNo, username, password, error: errors.join(", ") || undefined };
+
+          let resolvedTeacherId: string | null = defaultTeacherId || null;
+          if (!resolvedTeacherId) {
+            if (teacherInput) {
+              const needle = teacherInput.trim().toLowerCase();
+              const byUsername = teachers.find((t) => (t as any).username?.toLowerCase?.() === needle);
+              const byFull = teachers.find((t) => `${t.firstName} ${t.lastName}`.trim().toLowerCase() === needle);
+              const byFirstMatches = teachers.filter((t) => t.firstName.trim().toLowerCase() === needle);
+              const byLastMatches = teachers.filter((t) => t.lastName.trim().toLowerCase() === needle);
+              const match =
+                byUsername ||
+                byFull ||
+                (byFirstMatches.length === 1 ? byFirstMatches[0] : undefined) ||
+                (byLastMatches.length === 1 ? byLastMatches[0] : undefined);
+              if (match) {
+                resolvedTeacherId = match.id;
+              } else {
+                errors.push(`Unknown teacher '${teacherInput}'`);
+              }
+            } else if (className && section) {
+              const matches = teachers.filter((t) =>
+                t.classes.some((tc) => {
+                  const [cls, sec] = tc.split("-");
+                  return normalizeClass(cls) === className && (sec || "A") === section;
+                }),
+              );
+              if (matches.length === 1) {
+                resolvedTeacherId = matches[0].id;
+              } else if (matches.length > 1) {
+                errors.push(
+                  `Ambiguous teacher for ${className}-${section} (${matches
+                    .map((m) => `${m.firstName} ${m.lastName}`)
+                    .join(", ")}); fill Teacher column`,
+                );
+              } else {
+                errors.push(`No teacher assigned to ${className}-${section}; fill Teacher column`);
+              }
+            }
+          }
+
+          return {
+            name,
+            className,
+            section,
+            rollNo,
+            username,
+            password,
+            teacherInput,
+            resolvedTeacherId,
+            error: errors.join(", ") || undefined,
+          };
         });
         setRows(parsed);
         if (parsed.length === 0) toast.error("No rows found in the file");
@@ -180,20 +233,12 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
 
       const studentRows = signed.map(({ index, userId }) => {
         const row = rows[index];
-        const teacher = defaultTeacherId
-          ? teachers.find((item) => item.id === defaultTeacherId)
-          : teachers.find((item) =>
-              item.classes.some((tc) => {
-                const [cls, sec] = tc.split("-");
-                return normalizeClass(cls) === row.className && (sec || "A") === row.section;
-              }),
-            );
         return {
           user_id: userId,
           school_id: actualSchoolId,
           tenant_id: tenantId,
           created_by: createdBy,
-          teacher_id: teacher?.id || null,
+          teacher_id: row.resolvedTeacherId || defaultTeacherId || null,
           name: row.name,
           father_name: "",
           class: row.className,
@@ -260,7 +305,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="font-display text-lg font-bold text-foreground">Student Upload</h2>
-              <p className="font-body text-sm text-muted-foreground">Columns: Student Name, Class, Section, Roll No, Username, Password.</p>
+              <p className="font-body text-sm text-muted-foreground">Columns: Student Name, Class, Section, Roll No, Username, Password, Teacher (optional — required when more than one teacher shares a class‑section).</p>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setOpen(false)}><X className="w-5 h-5" /></Button>
           </div>
