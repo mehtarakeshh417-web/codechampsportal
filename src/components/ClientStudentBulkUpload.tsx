@@ -26,6 +26,8 @@ interface ParsedRow {
   rollNo: string;
   username: string;
   password: string;
+  teacherInput: string;
+  resolvedTeacherId: string | null;
   error?: string;
   status?: RowStatus;
   statusMessage?: string;
