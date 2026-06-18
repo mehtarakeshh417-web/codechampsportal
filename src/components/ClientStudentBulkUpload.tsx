@@ -305,7 +305,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="font-display text-lg font-bold text-foreground">Student Upload</h2>
-              <p className="font-body text-sm text-muted-foreground">Columns: Student Name, Class, Section, Roll No, Username, Password.</p>
+              <p className="font-body text-sm text-muted-foreground">Columns: Student Name, Class, Section, Roll No, Username, Password, Teacher (optional — required when more than one teacher shares a class‑section).</p>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setOpen(false)}><X className="w-5 h-5" /></Button>
           </div>
