@@ -36,6 +36,7 @@ const App = () => (
         </DataProvider>
       </AuthProvider>
     </TooltipProvider>
+    <ResourceLimitOverlay />
   </QueryClientProvider>
 );
 
