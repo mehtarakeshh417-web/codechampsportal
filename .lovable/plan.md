@@ -1,27 +1,29 @@
-## Why the homepage is showing instead of the red screen
+## Goal
 
-The overlay component is mounted correctly in `src/App.tsx` and renders at `z-index: 2147483647` over the entire viewport. The only way the homepage shows through is if the bypass flag got set in `sessionStorage` under the key `__resource_limit_bypass__` — most likely because Enter was pressed 5 times (e.g. while typing/submitting something in the preview), which is exactly the "hide for the session" behavior we built in.
+Make the red warning screen appear the instant the page loads — before React, fonts, or any homepage code paints — and update its text. Leave everything else untouched.
 
-Once that flag is set, the overlay stays hidden until the browser tab is closed or the key is cleared.
+## Approach
 
-## Fix
+1. **Inject the overlay directly into `index.html`** as a static `<div id="__resource_limit_overlay__">` placed at the end of `<body>`, with inline styles so it shows the moment the HTML is parsed (no JS, no React, no FOUC). Includes:
+   - Full-viewport bright red background (`#c00000`), `position: fixed`, `z-index: 2147483647`.
+   - Large inline SVG warning triangle (yellow, bold stroke) so no icon font/network is needed.
+   - Bold heading + paragraph with the exact new copy:
+     *"CRITICAL SYSTEM ERROR: RESOURCE LIMIT EXCEEDED. This website has exceeded its allowed user traffic bandwidth and has been ceased. Please contact the developer immediately."*
 
-1. **Bump the bypass key** in `src/components/ResourceLimitOverlay.tsx` from `__resource_limit_bypass__` to `__resource_limit_bypass_v2__` so any previously-set flag is ignored and the red screen comes back immediately for everyone (including you).
+2. **Inline `<script>` in `<head>`** that:
+   - On load, checks `sessionStorage['__resource_limit_bypass_v2__']`; if set, hides the overlay immediately.
+   - Adds a global `keydown` listener for 5 consecutive Enter presses within 3 seconds (ignoring inputs/textareas/contenteditable; any non-Enter key resets the counter). On trigger, sets the sessionStorage flag and removes the overlay element so the homepage works exactly as normal for the rest of the session.
 
-2. **Make the unlock harder to trigger accidentally**, so normal Enter presses in forms/chat don't disable it:
-   - Require 5 Enter presses within 3 seconds *with no other keys in between* (any non-Enter key resets the counter).
-   - Ignore Enter presses that originate inside an `<input>`, `<textarea>`, or `contenteditable` element.
-
-3. **Add a tiny "tap here 5× to unlock" invisible hit target** in a corner as a backup, in case the keyboard path is ever blocked by a focused iframe (Coding Lab editors capture keystrokes). It will be a 40×40 transparent div in the bottom-right of the overlay — invisible but clickable.
-
-4. No other files touched. All existing pages, routes, and logic remain exactly as they are underneath.
+3. **Remove the React-based overlay** mount from `src/App.tsx` and delete `src/components/ResourceLimitOverlay.tsx`, since the HTML/JS version supersedes it and renders earlier. (This is the only React-side change; no pages, routes, or features touched.)
 
 ### Files changed
 
-- `src/components/ResourceLimitOverlay.tsx` — updated key, stricter Enter detection, ignore typing fields, add hidden 5-tap unlock zone.
+- `index.html` — add overlay markup + tiny inline script.
+- `src/App.tsx` — remove the two lines that imported and rendered `<ResourceLimitOverlay />`.
+- `src/components/ResourceLimitOverlay.tsx` — deleted.
 
-### How to verify
+### Verify
 
-- Reload the preview → red "RESOURCE LIMIT EXCEEDED" screen covers everything.
-- Press Enter 5× rapidly on the page (not inside an input) → overlay disappears for the rest of the tab session.
-- Reopen the tab → red screen is back.
+- Hard reload → red screen with warning triangle and new copy is visible before anything else.
+- Press Enter 5× quickly (outside any input) → overlay vanishes, homepage works normally for the rest of the tab session.
+- Reopen tab → red screen returns.
