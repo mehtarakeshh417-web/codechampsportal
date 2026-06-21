@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 import CanvaCallback from "./pages/CanvaCallback";
+import ResourceLimitOverlay from "@/components/ResourceLimitOverlay";
 
 const queryClient = new QueryClient();
 
