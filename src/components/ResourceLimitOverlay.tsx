@@ -1,7 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 
-const BYPASS_KEY = "__resource_limit_bypass__";
+const BYPASS_KEY = "__resource_limit_bypass_v2__";
+
+const isTypingTarget = (t: EventTarget | null) => {
+  if (!(t instanceof HTMLElement)) return false;
+  const tag = t.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (t.isContentEditable) return true;
+  return false;
+};
 
 const ResourceLimitOverlay = () => {
   const [hidden, setHidden] = useState<boolean>(() => {
@@ -12,34 +20,65 @@ const ResourceLimitOverlay = () => {
     }
   });
 
+  const enterCount = useRef(0);
+  const enterTimer = useRef<number | undefined>(undefined);
+  const tapCount = useRef(0);
+  const tapTimer = useRef<number | undefined>(undefined);
+
+  const unlock = () => {
+    try {
+      sessionStorage.setItem(BYPASS_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    setHidden(true);
+  };
+
   useEffect(() => {
-    let count = 0;
-    let timer: number | undefined;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Enter") return;
-      count += 1;
-      if (timer) window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        count = 0;
-      }, 2000);
-      if (count >= 5) {
-        count = 0;
-        try {
-          sessionStorage.setItem(BYPASS_KEY, "1");
-        } catch {
-          /* ignore */
-        }
-        setHidden(true);
+    const resetEnter = () => {
+      enterCount.current = 0;
+      if (enterTimer.current) {
+        window.clearTimeout(enterTimer.current);
+        enterTimer.current = undefined;
       }
     };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (isTypingTarget(e.target)) return;
+      if (e.key !== "Enter") {
+        // Any non-Enter key resets the counter
+        resetEnter();
+        return;
+      }
+      enterCount.current += 1;
+      if (enterTimer.current) window.clearTimeout(enterTimer.current);
+      enterTimer.current = window.setTimeout(resetEnter, 3000);
+      if (enterCount.current >= 5) {
+        resetEnter();
+        unlock();
+      }
+    };
+
     window.addEventListener("keydown", onKey, true);
     return () => {
       window.removeEventListener("keydown", onKey, true);
-      if (timer) window.clearTimeout(timer);
+      if (enterTimer.current) window.clearTimeout(enterTimer.current);
     };
   }, []);
 
   if (hidden) return null;
+
+  const onSecretTap = () => {
+    tapCount.current += 1;
+    if (tapTimer.current) window.clearTimeout(tapTimer.current);
+    tapTimer.current = window.setTimeout(() => {
+      tapCount.current = 0;
+    }, 3000);
+    if (tapCount.current >= 5) {
+      tapCount.current = 0;
+      unlock();
+    }
+  };
 
   return (
     <div
@@ -82,6 +121,25 @@ const ResourceLimitOverlay = () => {
         This website has exceeded its allowed user limit and has been
         temporarily ceased. Please contact the developer immediately.
       </p>
+      {/* Hidden 5-tap unlock zone (bottom-right corner) */}
+      <button
+        aria-hidden="true"
+        tabIndex={-1}
+        onClick={onSecretTap}
+        style={{
+          position: "fixed",
+          right: 0,
+          bottom: 0,
+          width: 48,
+          height: 48,
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          margin: 0,
+          cursor: "default",
+          opacity: 0,
+        }}
+      />
     </div>
   );
 };
