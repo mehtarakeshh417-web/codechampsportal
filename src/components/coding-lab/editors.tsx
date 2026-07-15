@@ -153,14 +153,14 @@ export const JavaEditor = () => (
   </EditorWrapper>
 );
 
-// MS Paint (paint.js.org - open source MS Paint clone using Web Components)
+// MS Paint — JS Paint (open-source MS Paint clone, embedded)
 export const MsPaintEditor = () => (
-  <EditorWrapper title="MS Paint">
+  <EditorWrapper title="MS Paint (JS Paint)">
     <div className="h-[650px] rounded-xl overflow-hidden border border-white/10 bg-white">
       <iframe
-        src="https://paint.js.org/"
+        src="https://jspaint.app/"
         className="w-full h-full border-0"
-        title="MS Paint (paint.js.org)"
+        title="JS Paint"
         allow="clipboard-read; clipboard-write; camera"
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-downloads"
         loading="lazy"
