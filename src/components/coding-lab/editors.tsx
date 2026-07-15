@@ -169,12 +169,13 @@ export const MsPaintEditor = () => (
   </EditorWrapper>
 );
 
-// MS Word — free TinyMCE-based Word lookalike (no login, fully local)
+// MS Word — embedded Zoho Writer (public iframe)
 export const MsWordEditor = () => (
-  <EditorWrapper title="MS Word">
-    <WordPro />
+  <EditorWrapper title="MS Word (Zoho Writer)">
+    <ZohoWordEditor />
   </EditorWrapper>
 );
+
 
 // MS Excel — real OnlyOffice spreadsheet editor (shared class workbook)
 export const MsExcelEditor = () => (
