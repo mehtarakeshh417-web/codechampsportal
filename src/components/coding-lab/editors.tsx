@@ -8,6 +8,7 @@ import SimulatedWordEditor from "./SimulatedWordEditor";
 import SimulatedExcelEditor from "./SimulatedExcelEditor";
 import SimulatedPowerPointEditor from "./SimulatedPowerPointEditor";
 import WordPro from "./WordPro";
+import ZohoWordEditor from "./ZohoWordEditor";
 import ExcelPro from "./ExcelPro";
 import OnlyOfficeExcel from "./OnlyOfficeExcel";
 import PowerPointPro from "./PowerPointPro";
