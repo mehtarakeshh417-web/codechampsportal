@@ -230,6 +230,8 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
         setRows((prev) => prev.map((r, i) => (i === index ? { ...r, status: "failed", statusMessage: lastError?.message || "Sign-up failed" } : r)));
       };
 
+      let processed = 0;
+
       for (let i = 0; i < targetIndexes.length; i += CHUNK_SIZE) {
         const chunk = targetIndexes.slice(i, i + CHUNK_SIZE);
         for (const item of chunk) {
