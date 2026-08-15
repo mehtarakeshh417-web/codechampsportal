@@ -1,25 +1,30 @@
-## Goal
-Replace the current student Word editor (WordPro / TinyMCE-based) with an embedded Zoho Writer via a public iframe. No login flow, no API keys.
+# Raise bulk student upload capacity to 10,000
 
-## Scope
-Only the Word editor is touched. HTML/Python/Java/Paint editors, routing, roles, and topic→lab mapping stay exactly as-is.
+## Why the limit is 1,000 today
 
-## Changes
+There is no 1,000-row cap anywhere in the upload code. `src/components/ClientStudentBulkUpload.tsx` parses the whole sheet and processes every valid row — no `maxRows` check exists.
 
-1. **New component** `src/components/coding-lab/ZohoWordEditor.tsx`
-   - Renders an `<iframe>` pointing to Zoho Writer's public entry URL (`https://writer.zoho.com/writer/`).
-   - `width="100%"`, full height, `allow="clipboard-read; clipboard-write; fullscreen"`, `sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"`.
-   - Dark neon themed wrapper container (rounded border, matches existing editors).
-   - A small header note: "Opens Zoho Writer — sign in inside the frame if prompted to save."
+The ceiling comes from **Cloud Auth sign-up rate limiting**. Each student row calls a client-side `signUp` (via `src/lib/studentAccounts.ts`). The hourly sign-up rate limit in the Cloud Auth settings is what caps throughput — it was previously raised to 1000/hour, which is exactly why uploads stop succeeding right around 1,000 students. Beyond that, rows come back with "Request rate limit reached" (HTTP 429) and are marked Failed.
 
-2. **`src/components/coding-lab/editors.tsx`**
-   - Swap `import WordPro from "./WordPro"` → `import ZohoWordEditor from "./ZohoWordEditor"`.
-   - `MsWordEditor` renders `<ZohoWordEditor />` inside the existing `EditorWrapper` (keeps Save-to-Local + fullscreen toggle).
-   - Update the `export { default as WordProEditor }` line to re-export `ZohoWordEditor` (keeping the name so no other imports break), or leave WordPro file untouched and just stop using it.
+So: 1,000 = the Auth setting, not the app.
 
-3. **Leave untouched**
-   - `WordPro.tsx` file stays on disk (unused) so it can be restored later.
-   - `StudentCodingLab.tsx`, `topicLabMap.ts`, `PremiumContentSections.tsx`, all other editors, routes, and styling.
+## What needs to happen
 
-## Caveats to flag to the user
-- Zoho Writer's public site requires a Zoho/Google login for saving; the iframe itself loads without keys, but Zoho may set `X-Frame-Options` that blocks embedding. If the iframe is blank in preview, the only fixes are (a) switch to Zoho Office Integrator API (needs a paid key) or (b) open Zoho Writer in a new tab via a button instead of embedding. I'll add a "Open in new tab" fallback button in the header for that case.
+### 1. Setting change (owner action, free, ~30 seconds)
+In the Cloud dashboard: **Users → Auth settings → Rate Limits → sign-ups/hour** → change `1000` to `10000` → Save. I cannot change this from code; there is no tool exposed to the agent for it.
+
+### 2. Code changes I will make
+
+In `src/components/ClientStudentBulkUpload.tsx`:
+
+- Add an explicit `MAX_ROWS = 10000` guard at parse time with a clear message if the sheet exceeds it, so the boundary is visible in the UI instead of surfacing as random 429s.
+- Increase throughput for large files: raise `CHUNK_SIZE` from 5 to 25 and lower `CHUNK_DELAY_MS` from 1200 to 300, keeping the existing exponential-backoff retry (`RETRY_BACKOFFS`) for any row that still hits a 429.
+- Raise the "large batch" warning threshold from 30 to 500, and make the message show an estimated completion time based on row count.
+- Add a live progress indicator (`x / y processed`) during the run, since a 10,000-row upload takes several minutes.
+- Keep the existing per-row failure isolation and "click Create again to retry only failed rows" behaviour — this stays the safety net if the Auth limit is still hit.
+
+No other component, route, or database change is required. Manual single-student creation is untouched.
+
+## Note on very large files
+
+Even at 10,000/hour, a full 10,000-row upload will run for several minutes in one browser tab and must stay open. Splitting into files of ~1,000–2,000 rows remains the more reliable workflow; the code will support the full 10,000 either way.
