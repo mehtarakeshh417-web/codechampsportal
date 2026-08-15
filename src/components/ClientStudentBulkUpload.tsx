@@ -303,6 +303,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
       toast.error(error?.message || "Bulk upload failed");
     } finally {
       setUploading(false);
+      setProgress(null);
     }
   };
 
