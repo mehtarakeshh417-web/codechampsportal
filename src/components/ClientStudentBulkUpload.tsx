@@ -168,8 +168,20 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
             error: errors.join(", ") || undefined,
           };
         });
-        setRows(parsed);
-        if (parsed.length === 0) toast.error("No rows found in the file");
+        const seen = new Map<string, number>();
+        parsed.forEach((row) => {
+          const key = usernameToEmail(row.username || "");
+          if (!row.username) return;
+          seen.set(key, (seen.get(key) || 0) + 1);
+        });
+        const deduped = parsed.map((row) => {
+          if (row.username && (seen.get(usernameToEmail(row.username)) || 0) > 1) {
+            return { ...row, error: [row.error, "Duplicate username in this file"].filter(Boolean).join(", ") };
+          }
+          return row;
+        });
+        setRows(deduped);
+        if (deduped.length === 0) toast.error("No rows found in the file");
       } catch (error: any) {
         toast.error(error?.message || "Could not read the selected file");
       }
