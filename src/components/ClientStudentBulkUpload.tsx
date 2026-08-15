@@ -342,7 +342,13 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
                 <span>{rows.length} row(s)</span>
                 <span>{validCount} valid</span>
                 {errorCount > 0 && <span className="text-destructive">{errorCount} error(s)</span>}
+                {progress && <span className="text-primary">{progress.done} / {progress.total} processed</span>}
               </div>
+              {progress && (
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-primary transition-all" style={{ width: `${Math.round((progress.done / Math.max(1, progress.total)) * 100)}%` }} />
+                </div>
+              )}
               <div className="max-h-56 overflow-auto rounded-lg border border-border">
                 <table className="w-full text-xs">
                   <thead className="bg-muted sticky top-0">
