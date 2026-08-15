@@ -34,8 +34,10 @@ interface ParsedRow {
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const CHUNK_SIZE = 5;
-const CHUNK_DELAY_MS = 1200;
+const CHUNK_SIZE = 25;
+const CHUNK_DELAY_MS = 300;
+const MAX_ROWS = 10000;
+const LARGE_BATCH_THRESHOLD = 500;
 const RETRY_BACKOFFS = [2000, 4000, 8000];
 const isRateLimitError = (error: any) => /rate limit|429|too many/i.test(error?.message || error?.error_description || "");
 
@@ -58,6 +60,8 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [uploading, setUploading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
+
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const validClasses = (allowedClasses?.length ? allowedClasses : DEFAULT_CLASSES).map(normalizeClass);
   const validSections = allowedSections?.length ? allowedSections : sections;
@@ -91,6 +95,10 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
         const workbook = XLSX.read(loadEvent.target?.result, { type: "binary" });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: "" });
+        if (data.length > MAX_ROWS) {
+          toast.error(`This file has ${data.length} rows. The maximum is ${MAX_ROWS.toLocaleString()} per upload — please split it.`);
+          return;
+        }
         const parsed: ParsedRow[] = data.map((item) => {
           const name = readCell(item, "Student Name", "Name", "StudentName", "name");
           const rawClass = readCell(item, "Class", "class", "Grade", "grade");
@@ -181,8 +189,11 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
     setUploading(true);
     setSummary(null);
 
-    if (targetIndexes.length > 30) {
-      toast.message("Large batch — this will take ~1 minute due to sign‑up limits");
+    setProgress({ done: 0, total: targetIndexes.length });
+
+    if (targetIndexes.length > LARGE_BATCH_THRESHOLD) {
+      const minutes = Math.max(1, Math.ceil((targetIndexes.length / CHUNK_SIZE) * (CHUNK_DELAY_MS + CHUNK_SIZE * 350) / 60000));
+      toast.message(`Large batch of ${targetIndexes.length} students — estimated ~${minutes} minute(s). Keep this tab open.`);
     }
 
     // Reset status on rows we're about to process
@@ -219,11 +230,15 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
         setRows((prev) => prev.map((r, i) => (i === index ? { ...r, status: "failed", statusMessage: lastError?.message || "Sign-up failed" } : r)));
       };
 
+      let processed = 0;
+
       for (let i = 0; i < targetIndexes.length; i += CHUNK_SIZE) {
         const chunk = targetIndexes.slice(i, i + CHUNK_SIZE);
         for (const item of chunk) {
           await signUpOne(item);
+          processed++;
         }
+        setProgress({ done: processed, total: targetIndexes.length });
         if (i + CHUNK_SIZE < targetIndexes.length) await sleep(CHUNK_DELAY_MS);
       }
 
@@ -288,6 +303,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
       toast.error(error?.message || "Bulk upload failed");
     } finally {
       setUploading(false);
+      setProgress(null);
     }
   };
 
@@ -326,7 +342,13 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
                 <span>{rows.length} row(s)</span>
                 <span>{validCount} valid</span>
                 {errorCount > 0 && <span className="text-destructive">{errorCount} error(s)</span>}
+                {progress && <span className="text-primary">{progress.done} / {progress.total} processed</span>}
               </div>
+              {progress && (
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-primary transition-all" style={{ width: `${Math.round((progress.done / Math.max(1, progress.total)) * 100)}%` }} />
+                </div>
+              )}
               <div className="max-h-56 overflow-auto rounded-lg border border-border">
                 <table className="w-full text-xs">
                   <thead className="bg-muted sticky top-0">
