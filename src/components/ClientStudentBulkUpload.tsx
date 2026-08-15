@@ -34,8 +34,10 @@ interface ParsedRow {
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const CHUNK_SIZE = 5;
-const CHUNK_DELAY_MS = 1200;
+const CHUNK_SIZE = 25;
+const CHUNK_DELAY_MS = 300;
+const MAX_ROWS = 10000;
+const LARGE_BATCH_THRESHOLD = 500;
 const RETRY_BACKOFFS = [2000, 4000, 8000];
 const isRateLimitError = (error: any) => /rate limit|429|too many/i.test(error?.message || error?.error_description || "");
 
