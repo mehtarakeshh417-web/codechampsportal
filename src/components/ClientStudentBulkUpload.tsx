@@ -221,7 +221,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
             return;
           } catch (err: any) {
             lastError = err;
-            if (isRateLimitError(err) && attempt < RETRY_BACKOFFS.length) {
+            if (isRetryableError(err) && attempt < RETRY_BACKOFFS.length) {
               await sleep(RETRY_BACKOFFS[attempt]);
               continue;
             }
