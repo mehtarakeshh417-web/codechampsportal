@@ -1,7 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+import { supabase } from "@/integrations/supabase/client";
 
 const toHex = (value: string) => Array.from(new TextEncoder().encode(value))
   .map((byte) => byte.toString(16).padStart(2, "0"))
@@ -39,30 +36,19 @@ export const normalizeClass = (raw: string): string => {
 };
 
 export const createStudentAuthAccount = async (username: string, password: string, displayName: string) => {
-  const memoryStorage = {
-    getItem: () => null,
-    setItem: () => undefined,
-    removeItem: () => undefined,
-  };
-
-  const isolatedClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: {
-      storage: memoryStorage,
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
+  const email = usernameToEmail(username);
+  const { data, error } = await supabase.functions.invoke("manage-users", {
+    body: {
+      action: "create_user",
+      email,
+      password: passwordForAuth(password),
+      role: "student",
+      metadata: { username: username.trim(), display_name: displayName },
     },
   });
 
-  const email = usernameToEmail(username);
-  const { data, error } = await isolatedClient.auth.signUp({
-    email,
-    password: passwordForAuth(password),
-    options: { data: { username, display_name: displayName } },
-  });
-
-  await isolatedClient.auth.signOut();
-  if (error) throw error;
-  if (!data.user?.id) throw new Error("Student login account was not created");
-  return { userId: data.user.id, email };
+  if (error) throw new Error(error.message || "Student login account was not created");
+  if (data?.error) throw new Error(data.error);
+  if (!data?.user?.id) throw new Error("Student login account was not created");
+  return { userId: data.user.id as string, email };
 };

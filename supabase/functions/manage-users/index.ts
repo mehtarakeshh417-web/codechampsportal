@@ -15,8 +15,8 @@ const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringif
 
 const findUserByEmail = async (supabase: any, email: string) => {
   let page = 1;
-  const perPage = 100;
-  while (page <= 20) {
+  const perPage = 1000;
+  while (true) {
     const { data } = await supabase.auth.admin.listUsers({ page, perPage });
     const found = data?.users?.find((user: any) => user.email?.toLowerCase() === email.toLowerCase());
     if (found || !data?.users || data.users.length < perPage) return found || null;

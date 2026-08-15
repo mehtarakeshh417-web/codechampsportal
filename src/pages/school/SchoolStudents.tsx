@@ -46,15 +46,16 @@ const SchoolStudents = () => {
       return;
     }
     setIsSubmitting(true);
-    const student = await addStudent({ ...form, schoolId }, form.username.trim(), form.password.trim());
-    if (student) {
+    try {
+      const student = await addStudent({ ...form, schoolId }, form.username.trim(), form.password.trim());
       toast.success(`Student created! Username: ${student.username} | Password: ${student.password}`);
       setForm({ name: "", fatherName: "", class: "", section: "", rollNo: "", teacherId: "", username: "", password: "" });
       setShowForm(false);
-    } else {
-      toast.error("Failed to create student.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create student.");
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const handleDelete = async (studentId: string, studentName: string) => {

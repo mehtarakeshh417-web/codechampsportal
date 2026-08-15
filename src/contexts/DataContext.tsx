@@ -113,6 +113,22 @@ const saveDeleted = (schoolId: string, list: DeletedEntry[]) => {
   try { localStorage.setItem(DELETED_KEY(schoolId), JSON.stringify(list.slice(0, 500))); } catch { /* quota */ }
 };
 
+const fetchAllStudents = async () => {
+  const pageSize = 1000;
+  const allRows: any[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("students")
+      .select("*")
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    const page = data || [];
+    allRows.push(...page);
+    if (page.length < pageSize) return allRows;
+  }
+};
+
 interface DataContextType {
   schools: SchoolData[];
   teachers: TeacherData[];
@@ -151,14 +167,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) { setSchools([]); setTeachers([]); setStudents([]); setLoading(false); return; }
     setLoading(true);
     try {
-      const [sRes, tRes, stRes] = await Promise.all([
+      const [sRes, tRes, studentRows] = await Promise.all([
         supabase.from("schools").select("*"),
         supabase.from("teachers").select("*"),
-        supabase.from("students").select("*"),
+        fetchAllStudents(),
       ]);
+      if (sRes.error) throw sRes.error;
+      if (tRes.error) throw tRes.error;
       setSchools((sRes.data || []).map(mapSchool));
       setTeachers((tRes.data || []).map(mapTeacher));
-      setStudents((stRes.data || []).map(mapStudent));
+      setStudents(studentRows.map(mapStudent));
     } catch (err) { console.error("Fetch error:", err); }
     setLoading(false);
   }, [user]);
@@ -247,7 +265,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return newStudent;
     } catch (error) {
       console.error("Create student failed:", error);
-      return null;
+      throw error instanceof Error ? error : new Error("Student could not be created");
     }
   }, [schools, teachers, user, queryClient, fetchData]);
 
