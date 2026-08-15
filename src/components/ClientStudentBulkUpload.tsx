@@ -189,8 +189,11 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
     setUploading(true);
     setSummary(null);
 
-    if (targetIndexes.length > 30) {
-      toast.message("Large batch — this will take ~1 minute due to sign‑up limits");
+    setProgress({ done: 0, total: targetIndexes.length });
+
+    if (targetIndexes.length > LARGE_BATCH_THRESHOLD) {
+      const minutes = Math.max(1, Math.ceil((targetIndexes.length / CHUNK_SIZE) * (CHUNK_DELAY_MS + CHUNK_SIZE * 350) / 60000));
+      toast.message(`Large batch of ${targetIndexes.length} students — estimated ~${minutes} minute(s). Keep this tab open.`);
     }
 
     // Reset status on rows we're about to process
