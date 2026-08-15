@@ -48,6 +48,7 @@ const SchoolStudents = () => {
     setIsSubmitting(true);
     try {
       const student = await addStudent({ ...form, schoolId }, form.username.trim(), form.password.trim());
+      if (!student) throw new Error("Student profile was not created");
       toast.success(`Student created! Username: ${student.username} | Password: ${student.password}`);
       setForm({ name: "", fatherName: "", class: "", section: "", rollNo: "", teacherId: "", username: "", password: "" });
       setShowForm(false);

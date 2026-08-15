@@ -22,7 +22,6 @@ const findUserByEmail = async (supabase: any, email: string) => {
     if (found || !data?.users || data.users.length < perPage) return found || null;
     page++;
   }
-  return null;
 };
 
 Deno.serve(async (req) => {
@@ -33,7 +32,17 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const serviceFetch: typeof fetch = (input, init = {}) => {
+      if (!serviceRoleKey.startsWith("sb_secret_")) return fetch(input, init);
+      const headers = new Headers(init.headers);
+      headers.set("apikey", serviceRoleKey);
+      headers.delete("Authorization");
+      return fetch(input, { ...init, headers });
+    };
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      global: { fetch: serviceFetch },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
     const body = await req.json().catch(() => ({}));
     const { action } = body;
