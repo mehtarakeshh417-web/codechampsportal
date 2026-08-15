@@ -95,6 +95,10 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
         const workbook = XLSX.read(loadEvent.target?.result, { type: "binary" });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: "" });
+        if (data.length > MAX_ROWS) {
+          toast.error(`This file has ${data.length} rows. The maximum is ${MAX_ROWS.toLocaleString()} per upload — please split it.`);
+          return;
+        }
         const parsed: ParsedRow[] = data.map((item) => {
           const name = readCell(item, "Student Name", "Name", "StudentName", "name");
           const rawClass = readCell(item, "Class", "class", "Grade", "grade");
