@@ -15,14 +15,13 @@ const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringif
 
 const findUserByEmail = async (supabase: any, email: string) => {
   let page = 1;
-  const perPage = 100;
-  while (page <= 20) {
+  const perPage = 1000;
+  while (true) {
     const { data } = await supabase.auth.admin.listUsers({ page, perPage });
     const found = data?.users?.find((user: any) => user.email?.toLowerCase() === email.toLowerCase());
     if (found || !data?.users || data.users.length < perPage) return found || null;
     page++;
   }
-  return null;
 };
 
 Deno.serve(async (req) => {
@@ -33,7 +32,17 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const serviceFetch: typeof fetch = (input, init = {}) => {
+      if (!serviceRoleKey.startsWith("sb_secret_")) return fetch(input, init);
+      const headers = new Headers(init.headers);
+      headers.set("apikey", serviceRoleKey);
+      headers.delete("Authorization");
+      return fetch(input, { ...init, headers });
+    };
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      global: { fetch: serviceFetch },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
     const body = await req.json().catch(() => ({}));
     const { action } = body;
@@ -99,8 +108,7 @@ Deno.serve(async (req) => {
         if (/already|registered|exists/i.test(createError.message || "")) {
           const existing = await findUserByEmail(supabase, email);
           if (existing) {
-            userId = existing.id;
-            await supabase.auth.admin.updateUser(existing.id, { password: normalizePassword(password), user_metadata: metadata || {} });
+            return jsonResponse({ error: "This username is already in use. Please choose a different username." }, 409);
           } else {
             return jsonResponse({ error: createError.message }, 400);
           }
