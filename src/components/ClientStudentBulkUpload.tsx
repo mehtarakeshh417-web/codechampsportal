@@ -236,7 +236,9 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
         const chunk = targetIndexes.slice(i, i + CHUNK_SIZE);
         for (const item of chunk) {
           await signUpOne(item);
+          processed++;
         }
+        setProgress({ done: processed, total: targetIndexes.length });
         if (i + CHUNK_SIZE < targetIndexes.length) await sleep(CHUNK_DELAY_MS);
       }
 
