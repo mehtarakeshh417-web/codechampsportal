@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
-import { createStudentAuthAccount, normalizeClass } from "@/lib/studentAccounts";
+import { createStudentAuthAccount, normalizeClass, usernameToEmail } from "@/lib/studentAccounts";
 
 interface ClientStudentBulkUploadProps {
   schoolId: string;
@@ -39,7 +39,8 @@ const CHUNK_DELAY_MS = 300;
 const MAX_ROWS = 10000;
 const LARGE_BATCH_THRESHOLD = 500;
 const RETRY_BACKOFFS = [2000, 4000, 8000];
-const isRateLimitError = (error: any) => /rate limit|429|too many/i.test(error?.message || error?.error_description || "");
+const isRetryableError = (error: any) =>
+  error?.retryable === true || /rate limit|429|too many|timeout|network|fetch/i.test(error?.message || error?.error_description || "");
 
 const DEFAULT_CLASSES = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 
@@ -167,8 +168,20 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
             error: errors.join(", ") || undefined,
           };
         });
-        setRows(parsed);
-        if (parsed.length === 0) toast.error("No rows found in the file");
+        const seen = new Map<string, number>();
+        parsed.forEach((row) => {
+          const key = usernameToEmail(row.username || "");
+          if (!row.username) return;
+          seen.set(key, (seen.get(key) || 0) + 1);
+        });
+        const deduped = parsed.map((row) => {
+          if (row.username && (seen.get(usernameToEmail(row.username)) || 0) > 1) {
+            return { ...row, error: [row.error, "Duplicate username in this file"].filter(Boolean).join(", ") };
+          }
+          return row;
+        });
+        setRows(deduped);
+        if (deduped.length === 0) toast.error("No rows found in the file");
       } catch (error: any) {
         toast.error(error?.message || "Could not read the selected file");
       }
@@ -220,7 +233,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
             return;
           } catch (err: any) {
             lastError = err;
-            if (isRateLimitError(err) && attempt < RETRY_BACKOFFS.length) {
+            if (isRetryableError(err) && attempt < RETRY_BACKOFFS.length) {
               await sleep(RETRY_BACKOFFS[attempt]);
               continue;
             }
