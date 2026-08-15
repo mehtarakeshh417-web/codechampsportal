@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
-import { createStudentAuthAccount, normalizeClass } from "@/lib/studentAccounts";
+import { createStudentAuthAccount, normalizeClass, usernameToEmail } from "@/lib/studentAccounts";
 
 interface ClientStudentBulkUploadProps {
   schoolId: string;
