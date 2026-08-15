@@ -61,6 +61,8 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
   const [uploading, setUploading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
 
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+
   const validClasses = (allowedClasses?.length ? allowedClasses : DEFAULT_CLASSES).map(normalizeClass);
   const validSections = allowedSections?.length ? allowedSections : sections;
 
