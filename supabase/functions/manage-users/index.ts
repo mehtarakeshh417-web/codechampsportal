@@ -108,8 +108,7 @@ Deno.serve(async (req) => {
         if (/already|registered|exists/i.test(createError.message || "")) {
           const existing = await findUserByEmail(supabase, email);
           if (existing) {
-            userId = existing.id;
-            await supabase.auth.admin.updateUser(existing.id, { password: normalizePassword(password), user_metadata: metadata || {} });
+            return jsonResponse({ error: "This username is already in use. Please choose a different username." }, 409);
           } else {
             return jsonResponse({ error: createError.message }, 400);
           }
