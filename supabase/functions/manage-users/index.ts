@@ -14,15 +14,33 @@ const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringif
 });
 
 const findUserByEmail = async (supabase: any, email: string) => {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  // Fast path: GoTrue admin filter (avoids paging through every user, which times out on large tenants)
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/auth/v1/admin/users?page=1&per_page=50&filter=${encodeURIComponent(email)}`,
+      { headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` } },
+    );
+    if (res.ok) {
+      const payload = await res.json();
+      const found = (payload?.users || []).find((user: any) => user.email?.toLowerCase() === email.toLowerCase());
+      if (found) return found;
+    }
+  } catch (_) {
+    // fall through to paged scan
+  }
   let page = 1;
   const perPage = 1000;
-  while (true) {
+  while (page <= 20) {
     const { data } = await supabase.auth.admin.listUsers({ page, perPage });
     const found = data?.users?.find((user: any) => user.email?.toLowerCase() === email.toLowerCase());
     if (found || !data?.users || data.users.length < perPage) return found || null;
     page++;
   }
+  return null;
 };
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -105,19 +123,32 @@ Deno.serve(async (req) => {
       });
 
       if (createError) {
-        if (/already|registered|exists/i.test(createError.message || "")) {
+        if (/already|registered|exists|duplicate/i.test(createError.message || "")) {
           const existing = await findUserByEmail(supabase, email);
-          if (existing) {
+          if (!existing) return jsonResponse({ error: createError.message }, 400);
+
+          // An auth account exists. If it has no student/teacher profile yet, it is an
+          // orphan from an earlier failed run — reuse it so retries are idempotent.
+          const [{ data: existingStudent }, { data: existingTeacher }] = await Promise.all([
+            supabase.from("students").select("id").eq("user_id", existing.id).maybeSingle(),
+            supabase.from("teachers").select("id").eq("user_id", existing.id).maybeSingle(),
+          ]);
+          if (existingStudent || existingTeacher) {
             return jsonResponse({ error: "This username is already in use. Please choose a different username." }, 409);
-          } else {
-            return jsonResponse({ error: createError.message }, 400);
           }
+          await supabase.auth.admin.updateUserById(existing.id, {
+            password: normalizePassword(password),
+            email_confirm: true,
+            user_metadata: metadata || {},
+          });
+          userId = existing.id;
         } else {
           return jsonResponse({ error: createError.message }, 400);
         }
       } else {
         userId = newUser.user.id;
       }
+
 
       const { error: roleError } = await supabase
         .from("user_roles")
