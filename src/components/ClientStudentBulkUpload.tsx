@@ -52,6 +52,12 @@ const readCell = (row: Record<string, unknown>, ...keys: string[]) => {
   return "";
 };
 
+const normalizeTeacherIdentifier = (value: string) =>
+  value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+
+const normalizeSection = (value: string) =>
+  value.normalize("NFKC").trim().toLocaleUpperCase();
+
 const stripContextColumns = (rows: any[]) => rows.map(({ tenant_id, created_by, ...row }) => row);
 
 const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, allowedClasses, allowedSections, defaultTeacherId }: ClientStudentBulkUploadProps) => {
@@ -104,7 +110,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
           const name = readCell(item, "Student Name", "Name", "StudentName", "name");
           const rawClass = readCell(item, "Class", "class", "Grade", "grade");
           const className = normalizeClass(rawClass);
-          const section = readCell(item, "Section", "section", "Sec");
+          const section = normalizeSection(readCell(item, "Section", "section", "Sec"));
           const rollNo = readCell(item, "Roll No", "Roll No.", "RollNo", "Roll Number", "Roll", "roll_no");
           const username = readCell(item, "Username", "User Name", "username");
           const password = readCell(item, "Password", "Pass", "password");
@@ -120,11 +126,11 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
           let resolvedTeacherId: string | null = defaultTeacherId || null;
           if (!resolvedTeacherId) {
             if (teacherInput) {
-              const needle = teacherInput.trim().toLowerCase();
-              const byUsername = teachers.find((t) => (t as any).username?.toLowerCase?.() === needle);
-              const byFull = teachers.find((t) => `${t.firstName} ${t.lastName}`.trim().toLowerCase() === needle);
-              const byFirstMatches = teachers.filter((t) => t.firstName.trim().toLowerCase() === needle);
-              const byLastMatches = teachers.filter((t) => t.lastName.trim().toLowerCase() === needle);
+              const needle = normalizeTeacherIdentifier(teacherInput);
+              const byUsername = teachers.find((t) => normalizeTeacherIdentifier((t as any).username || "") === needle);
+              const byFull = teachers.find((t) => normalizeTeacherIdentifier(`${t.firstName} ${t.lastName}`) === needle);
+              const byFirstMatches = teachers.filter((t) => normalizeTeacherIdentifier(t.firstName) === needle);
+              const byLastMatches = teachers.filter((t) => normalizeTeacherIdentifier(t.lastName) === needle);
               const match =
                 byUsername ||
                 byFull ||
@@ -139,7 +145,7 @@ const ClientStudentBulkUpload = ({ schoolId, teachers, sections, onComplete, all
               const matches = teachers.filter((t) =>
                 t.classes.some((tc) => {
                   const [cls, sec] = tc.split("-");
-                  return normalizeClass(cls) === className && (sec || "A") === section;
+                  return normalizeClass(cls) === className && normalizeSection(sec || "A") === section;
                 }),
               );
               if (matches.length === 1) {
