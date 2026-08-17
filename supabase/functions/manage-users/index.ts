@@ -14,15 +14,33 @@ const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringif
 });
 
 const findUserByEmail = async (supabase: any, email: string) => {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  // Fast path: GoTrue admin filter (avoids paging through every user, which times out on large tenants)
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/auth/v1/admin/users?page=1&per_page=50&filter=${encodeURIComponent(email)}`,
+      { headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` } },
+    );
+    if (res.ok) {
+      const payload = await res.json();
+      const found = (payload?.users || []).find((user: any) => user.email?.toLowerCase() === email.toLowerCase());
+      if (found) return found;
+    }
+  } catch (_) {
+    // fall through to paged scan
+  }
   let page = 1;
   const perPage = 1000;
-  while (true) {
+  while (page <= 20) {
     const { data } = await supabase.auth.admin.listUsers({ page, perPage });
     const found = data?.users?.find((user: any) => user.email?.toLowerCase() === email.toLowerCase());
     if (found || !data?.users || data.users.length < perPage) return found || null;
     page++;
   }
+  return null;
 };
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
