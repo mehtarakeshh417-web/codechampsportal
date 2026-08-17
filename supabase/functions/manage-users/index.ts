@@ -123,19 +123,32 @@ Deno.serve(async (req) => {
       });
 
       if (createError) {
-        if (/already|registered|exists/i.test(createError.message || "")) {
+        if (/already|registered|exists|duplicate/i.test(createError.message || "")) {
           const existing = await findUserByEmail(supabase, email);
-          if (existing) {
+          if (!existing) return jsonResponse({ error: createError.message }, 400);
+
+          // An auth account exists. If it has no student/teacher profile yet, it is an
+          // orphan from an earlier failed run — reuse it so retries are idempotent.
+          const [{ data: existingStudent }, { data: existingTeacher }] = await Promise.all([
+            supabase.from("students").select("id").eq("user_id", existing.id).maybeSingle(),
+            supabase.from("teachers").select("id").eq("user_id", existing.id).maybeSingle(),
+          ]);
+          if (existingStudent || existingTeacher) {
             return jsonResponse({ error: "This username is already in use. Please choose a different username." }, 409);
-          } else {
-            return jsonResponse({ error: createError.message }, 400);
           }
+          await supabase.auth.admin.updateUserById(existing.id, {
+            password: normalizePassword(password),
+            email_confirm: true,
+            user_metadata: metadata || {},
+          });
+          userId = existing.id;
         } else {
           return jsonResponse({ error: createError.message }, 400);
         }
       } else {
         userId = newUser.user.id;
       }
+
 
       const { error: roleError } = await supabase
         .from("user_roles")
