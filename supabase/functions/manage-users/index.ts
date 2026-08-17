@@ -125,7 +125,12 @@ Deno.serve(async (req) => {
       if (createError) {
         if (/already|registered|exists|duplicate/i.test(createError.message || "")) {
           const existing = await findUserByEmail(supabase, email);
-          if (!existing) return jsonResponse({ error: createError.message }, 400);
+          if (!existing) {
+            const friendly = (createError.message || "")
+              .replace(/email address/gi, "username")
+              .replace(/email/gi, "username");
+            return jsonResponse({ error: friendly }, 400);
+          }
 
           // An auth account exists. If it has no student/teacher profile yet, it is an
           // orphan from an earlier failed run — reuse it so retries are idempotent.
@@ -143,7 +148,10 @@ Deno.serve(async (req) => {
           });
           userId = existing.id;
         } else {
-          return jsonResponse({ error: createError.message }, 400);
+          const friendly = (createError.message || "")
+            .replace(/email address/gi, "username")
+            .replace(/email/gi, "username");
+          return jsonResponse({ error: friendly }, 400);
         }
       } else {
         userId = newUser.user.id;
