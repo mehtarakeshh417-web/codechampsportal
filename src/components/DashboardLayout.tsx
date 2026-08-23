@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "@/components/NotificationBell";
+import ClassNumeralToggle from "@/components/ClassNumeralToggle";
 import dashboardBg from "@/assets/dashboard-bg.jpg";
 import {
   LayoutDashboard, School, Users, BookOpen, Trophy, Settings, LogOut, GraduationCap,
@@ -216,7 +217,8 @@ const DashboardLayout = ({ children }: Props) => {
       {/* Main Content */}
       <main className="flex-1 lg:ml-64 relative z-10">
         {/* Top bar with notification bell (desktop) */}
-        <div className="hidden lg:flex items-center justify-end px-8 pt-4 pb-0">
+        <div className="hidden lg:flex items-center justify-end gap-3 px-8 pt-4 pb-0">
+          <ClassNumeralToggle />
           <NotificationBell />
         </div>
         <div className="p-6 md:p-8 pt-20 lg:pt-4">
