@@ -172,6 +172,7 @@ const DashboardLayout = ({ children }: Props) => {
           <span className="font-display text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Avartan</span>
         </div>
         <div className="flex items-center gap-2">
+          <ClassNumeralToggle />
           <NotificationBell />
           <button onClick={() => setMobileOpen(!mobileOpen)} className="text-white/70 hover:text-white p-2">
             {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
