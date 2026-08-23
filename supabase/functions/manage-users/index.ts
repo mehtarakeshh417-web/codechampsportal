@@ -209,6 +209,32 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true });
     }
 
+    // Returns { user_id: username } for the given auth users so the portal can
+    // display real login usernames for teachers and students.
+    if (action === "list_usernames") {
+      if (!isAdmin && !isSchool && !isTeacher) {
+        return jsonResponse({ usernames: {} });
+      }
+      const wanted: string[] = Array.isArray(body.user_ids) ? body.user_ids.filter(Boolean) : [];
+      if (wanted.length === 0) return jsonResponse({ usernames: {} });
+
+      const wantedSet = new Set(wanted);
+      const usernames: Record<string, string> = {};
+      const perPage = 1000;
+      for (let page = 1; page <= 30; page++) {
+        const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+        if (error) return jsonResponse({ error: error.message }, 400);
+        const users = data?.users || [];
+        for (const u of users) {
+          if (!wantedSet.has(u.id)) continue;
+          const metaName = (u.user_metadata as any)?.username;
+          usernames[u.id] = metaName || (u.email || "").split("@")[0];
+        }
+        if (users.length < perPage || Object.keys(usernames).length >= wantedSet.size) break;
+      }
+      return jsonResponse({ usernames });
+    }
+
     return jsonResponse({ error: "Unknown action" }, 400);
   } catch (err: any) {
     return jsonResponse({ error: err.message }, 500);

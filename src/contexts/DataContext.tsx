@@ -163,6 +163,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [students, setStudents] = useState<StudentData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Login usernames live in Auth (username@avartan.school), not in the tables.
+  // Fetch them through the admin function so teacher/student logins are visible.
+  const hydrateUsernames = useCallback(async (teacherRows: TeacherData[], studentRows: StudentData[]) => {
+    const ids = [
+      ...teacherRows.map((t) => t.user_id),
+      ...studentRows.map((s) => s.user_id),
+    ].filter(Boolean) as string[];
+    if (ids.length === 0) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "list_usernames", user_ids: ids },
+      });
+      const map: Record<string, string> = (!error && data?.usernames) || {};
+      if (Object.keys(map).length === 0) return;
+      setTeachers((prev) => prev.map((t) => (t.user_id && map[t.user_id] ? { ...t, username: map[t.user_id] } : t)));
+      setStudents((prev) => prev.map((s) => (s.user_id && map[s.user_id] ? { ...s, username: map[s.user_id] } : s)));
+    } catch (err) {
+      console.warn("Username lookup unavailable:", err);
+    }
+  }, []);
+
   const fetchData = useCallback(async () => {
     if (!user) { setSchools([]); setTeachers([]); setStudents([]); setLoading(false); return; }
     setLoading(true);
@@ -174,12 +195,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ]);
       if (sRes.error) throw sRes.error;
       if (tRes.error) throw tRes.error;
+      const mappedTeachers = (tRes.data || []).map(mapTeacher);
+      const mappedStudents = studentRows.map(mapStudent);
       setSchools((sRes.data || []).map(mapSchool));
-      setTeachers((tRes.data || []).map(mapTeacher));
-      setStudents(studentRows.map(mapStudent));
+      setTeachers(mappedTeachers);
+      setStudents(mappedStudents);
+      if (user.role !== "student") void hydrateUsernames(mappedTeachers, mappedStudents);
     } catch (err) { console.error("Fetch error:", err); }
     setLoading(false);
-  }, [user]);
+  }, [user, hydrateUsernames]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
