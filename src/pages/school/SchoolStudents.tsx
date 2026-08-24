@@ -29,8 +29,22 @@ const SchoolStudents = () => {
   const SECTION_OPTIONS = school?.sections?.length ? school.sections : DEFAULT_SECTIONS;
   const [searchParams, setSearchParams] = useSearchParams();
   const focusId = searchParams.get("focus");
-  const students = focusId ? allStudents.filter((s) => s.id === focusId) : allStudents;
   const clearFocus = () => { searchParams.delete("focus"); setSearchParams(searchParams, { replace: true }); };
+  const formatClass = useClassFormatter();
+  const [filterClass, setFilterClass] = useState("");
+  const [filterSection, setFilterSection] = useState("");
+  const [search, setSearch] = useState("");
+
+  const students = useMemo(() => {
+    let list = focusId ? allStudents.filter((s) => s.id === focusId) : allStudents;
+    if (filterClass) list = list.filter((s) => normalizeClass(s.class) === normalizeClass(filterClass));
+    if (filterSection) list = list.filter((s) => (s.section || "A").toUpperCase() === filterSection.toUpperCase());
+    if (search.trim()) {
+      const needle = search.trim().toLowerCase();
+      list = list.filter((s) => s.name.toLowerCase().includes(needle) || (s.username || "").toLowerCase().includes(needle));
+    }
+    return [...list].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+  }, [allStudents, focusId, filterClass, filterSection, search]);
 
 
 
