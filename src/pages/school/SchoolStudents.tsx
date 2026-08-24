@@ -159,7 +159,7 @@ const SchoolStudents = () => {
               <Label className="text-white/80 font-body font-medium">Class *</Label>
               <select value={form.class} onChange={(e) => setForm({ ...form, class: e.target.value, teacherId: "" })} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
                 <option value="" className="bg-cyber-dark">Select class</option>
-                {CLASS_OPTIONS.map((c) => <option key={c} value={c} className="bg-cyber-dark">{c}</option>)}
+                {CLASS_OPTIONS.map((c) => <option key={c} value={c} className="bg-cyber-dark">{formatClass(c)}</option>)}
               </select>
             </div>
             <div className="space-y-2">
@@ -247,7 +247,7 @@ const SchoolStudents = () => {
                     <div className="space-y-1">
                       <Label className="text-white/70 text-xs">Class</Label>
                       <select value={editForm.class} onChange={(e) => setEditForm({ ...editForm, class: e.target.value, teacherId: "" })} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
-                        {CLASS_OPTIONS.map((c) => <option key={c} value={c} className="bg-cyber-dark">{c}</option>)}
+                        {CLASS_OPTIONS.map((c) => <option key={c} value={c} className="bg-cyber-dark">{formatClass(c)}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1">
