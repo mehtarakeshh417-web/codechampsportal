@@ -203,11 +203,31 @@ const SchoolStudents = () => {
         </div>
       )}
 
+      {!focusId && (
+        <div className="glass-card p-4 mb-4 grid gap-3 md:grid-cols-4">
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or username" className="bg-white/10 border-white/20 text-white placeholder:text-white/40" />
+          <select value={filterClass} onChange={(e) => setFilterClass(e.target.value)} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
+            <option value="" className="bg-cyber-dark">All classes</option>
+            {CLASS_OPTIONS.map((c) => <option key={c} value={c} className="bg-cyber-dark">{formatClass(c)}</option>)}
+          </select>
+          <select value={filterSection} onChange={(e) => setFilterSection(e.target.value)} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
+            <option value="" className="bg-cyber-dark">All sections</option>
+            {SECTION_OPTIONS.map((s) => <option key={s} value={s} className="bg-cyber-dark">Section {s}</option>)}
+          </select>
+          <div className="flex items-center justify-between gap-2 text-sm text-white/70 font-body">
+            <span>{students.length} student(s)</span>
+            {(filterClass || filterSection || search) && (
+              <Button variant="ghost" size="sm" onClick={() => { setFilterClass(""); setFilterSection(""); setSearch(""); }}>Clear</Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {students.length === 0 ? (
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-12 text-center">
           <GraduationCap className="w-16 h-16 text-white/30 mx-auto mb-4" />
-          <p className="text-white/50 font-body">No students enrolled yet</p>
+          <p className="text-white/50 font-body">No students match this view</p>
         </motion.div>
       ) : (
         <div className="space-y-2">
