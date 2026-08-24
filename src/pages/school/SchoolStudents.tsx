@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GraduationCap, Plus, X, Trash2, AlertTriangle, Edit2 } from "lucide-react";
 import ClientStudentBulkUpload from "@/components/ClientStudentBulkUpload";
+import { useClassFormatter } from "@/lib/classNames";
+import { normalizeClass } from "@/lib/studentAccounts";
 
 import { toast } from "sonner";
 
