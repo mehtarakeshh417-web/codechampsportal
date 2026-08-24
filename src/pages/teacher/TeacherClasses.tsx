@@ -29,9 +29,15 @@ const TeacherClasses = () => {
       ) : (
         <div className="space-y-4">
           {myClasses.map((cls, i) => {
-            const classStudents = allStudents.filter((s) => cls.includes(s.class));
+            const [clsName, clsSection = "A"] = cls.split("-");
+            // Match class AND section so "10th-A" never shows 10th-B students.
+            const classStudents = allStudents.filter(
+              (s) =>
+                normalizeClass(s.class) === normalizeClass(clsName) &&
+                (s.section || "A").trim().toUpperCase() === clsSection.trim().toUpperCase(),
+            );
             const isExpanded = expanded === cls;
-            const curriculum = getCurriculumForClass(cls);
+            const curriculum = getCurriculumForClass(clsName);
 
             return (
               <motion.div key={cls} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: i * 0.05 }}>
