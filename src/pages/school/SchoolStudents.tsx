@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GraduationCap, Plus, X, Trash2, AlertTriangle, Edit2 } from "lucide-react";
 import ClientStudentBulkUpload from "@/components/ClientStudentBulkUpload";
+import { useClassFormatter } from "@/lib/classNames";
+import { normalizeClass } from "@/lib/studentAccounts";
 
 import { toast } from "sonner";
 
@@ -29,8 +31,22 @@ const SchoolStudents = () => {
   const SECTION_OPTIONS = school?.sections?.length ? school.sections : DEFAULT_SECTIONS;
   const [searchParams, setSearchParams] = useSearchParams();
   const focusId = searchParams.get("focus");
-  const students = focusId ? allStudents.filter((s) => s.id === focusId) : allStudents;
   const clearFocus = () => { searchParams.delete("focus"); setSearchParams(searchParams, { replace: true }); };
+  const formatClass = useClassFormatter();
+  const [filterClass, setFilterClass] = useState("");
+  const [filterSection, setFilterSection] = useState("");
+  const [search, setSearch] = useState("");
+
+  const students = useMemo(() => {
+    let list = focusId ? allStudents.filter((s) => s.id === focusId) : allStudents;
+    if (filterClass) list = list.filter((s) => normalizeClass(s.class) === normalizeClass(filterClass));
+    if (filterSection) list = list.filter((s) => (s.section || "A").toUpperCase() === filterSection.toUpperCase());
+    if (search.trim()) {
+      const needle = search.trim().toLowerCase();
+      list = list.filter((s) => s.name.toLowerCase().includes(needle) || (s.username || "").toLowerCase().includes(needle));
+    }
+    return [...list].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+  }, [allStudents, focusId, filterClass, filterSection, search]);
 
 
 
@@ -143,7 +159,7 @@ const SchoolStudents = () => {
               <Label className="text-white/80 font-body font-medium">Class *</Label>
               <select value={form.class} onChange={(e) => setForm({ ...form, class: e.target.value, teacherId: "" })} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
                 <option value="" className="bg-cyber-dark">Select class</option>
-                {CLASS_OPTIONS.map((c) => <option key={c} value={c} className="bg-cyber-dark">{c}</option>)}
+                {CLASS_OPTIONS.map((c) => <option key={c} value={c} className="bg-cyber-dark">{formatClass(c)}</option>)}
               </select>
             </div>
             <div className="space-y-2">
@@ -187,11 +203,31 @@ const SchoolStudents = () => {
         </div>
       )}
 
+      {!focusId && (
+        <div className="glass-card p-4 mb-4 grid gap-3 md:grid-cols-4">
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or username" className="bg-white/10 border-white/20 text-white placeholder:text-white/40" />
+          <select value={filterClass} onChange={(e) => setFilterClass(e.target.value)} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
+            <option value="" className="bg-cyber-dark">All classes</option>
+            {CLASS_OPTIONS.map((c) => <option key={c} value={c} className="bg-cyber-dark">{formatClass(c)}</option>)}
+          </select>
+          <select value={filterSection} onChange={(e) => setFilterSection(e.target.value)} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
+            <option value="" className="bg-cyber-dark">All sections</option>
+            {SECTION_OPTIONS.map((s) => <option key={s} value={s} className="bg-cyber-dark">Section {s}</option>)}
+          </select>
+          <div className="flex items-center justify-between gap-2 text-sm text-white/70 font-body">
+            <span>{students.length} student(s)</span>
+            {(filterClass || filterSection || search) && (
+              <Button variant="ghost" size="sm" onClick={() => { setFilterClass(""); setFilterSection(""); setSearch(""); }}>Clear</Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {students.length === 0 ? (
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-12 text-center">
           <GraduationCap className="w-16 h-16 text-white/30 mx-auto mb-4" />
-          <p className="text-white/50 font-body">No students enrolled yet</p>
+          <p className="text-white/50 font-body">No students match this view</p>
         </motion.div>
       ) : (
         <div className="space-y-2">
@@ -211,7 +247,7 @@ const SchoolStudents = () => {
                     <div className="space-y-1">
                       <Label className="text-white/70 text-xs">Class</Label>
                       <select value={editForm.class} onChange={(e) => setEditForm({ ...editForm, class: e.target.value, teacherId: "" })} className="w-full rounded-lg bg-white/10 border border-white/20 text-white px-3 py-2 text-sm">
-                        {CLASS_OPTIONS.map((c) => <option key={c} value={c} className="bg-cyber-dark">{c}</option>)}
+                        {CLASS_OPTIONS.map((c) => <option key={c} value={c} className="bg-cyber-dark">{formatClass(c)}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1">
@@ -240,13 +276,16 @@ const SchoolStudents = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <span className="font-body font-bold text-white">{s.name}</span>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <span className="font-body font-bold text-white block truncate">{s.name}</span>
+                    <span className="text-xs font-body text-white/50">
+                      Username: <span className="text-neon-blue">{s.username || "—"}</span>
+                    </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex gap-3 text-xs text-white/60">
-                      <span className="px-2 py-0.5 rounded bg-neon-green/15 text-neon-green font-medium">{s.class} ({s.section || "A"})</span>
+                      <span className="px-2 py-0.5 rounded bg-neon-green/15 text-neon-green font-medium">{formatClass(s.class)} ({s.section || "A"})</span>
                       <span>Roll: {s.rollNo}</span>
                       <span className="text-white/40">Teacher: {getTeacherName(s.teacherId)}</span>
                     </div>

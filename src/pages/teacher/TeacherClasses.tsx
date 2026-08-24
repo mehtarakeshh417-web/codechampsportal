@@ -4,11 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { useState } from "react";
 import { getCurriculumForClass } from "@/lib/curriculumData";
+import { normalizeClass } from "@/lib/studentAccounts";
+import { useClassFormatter } from "@/lib/classNames";
 
 const TeacherClasses = () => {
   const { user } = useAuth();
   const { teachers, getTeacherStudents } = useData();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const formatClass = useClassFormatter();
 
   const teacher = teachers.find((t) => t.user_id === user?.id || t.id === user?.id);
   const myClasses = teacher?.classes || [];
@@ -29,9 +32,15 @@ const TeacherClasses = () => {
       ) : (
         <div className="space-y-4">
           {myClasses.map((cls, i) => {
-            const classStudents = allStudents.filter((s) => cls.includes(s.class));
+            const [clsName, clsSection = "A"] = cls.split("-");
+            // Match class AND section so "10th-A" never shows 10th-B students.
+            const classStudents = allStudents.filter(
+              (s) =>
+                normalizeClass(s.class) === normalizeClass(clsName) &&
+                (s.section || "A").trim().toUpperCase() === clsSection.trim().toUpperCase(),
+            );
             const isExpanded = expanded === cls;
-            const curriculum = getCurriculumForClass(cls);
+            const curriculum = getCurriculumForClass(clsName);
 
             return (
               <motion.div key={cls} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: i * 0.05 }}>
@@ -43,7 +52,7 @@ const TeacherClasses = () => {
                     <BookOpen className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1 text-left">
-                    <h3 className="font-display text-lg font-bold text-white">{cls}</h3>
+                    <h3 className="font-display text-lg font-bold text-white">{formatClass(cls)}</h3>
                     <p className="text-xs text-white/50 font-body">
                       {classStudents.length} students · {curriculum ? curriculum.subjects.length + " subjects" : "No curriculum"}
                     </p>
