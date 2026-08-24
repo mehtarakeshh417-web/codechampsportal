@@ -11,6 +11,7 @@ const TeacherClasses = () => {
   const { user } = useAuth();
   const { teachers, getTeacherStudents } = useData();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const formatClass = useClassFormatter();
 
   const teacher = teachers.find((t) => t.user_id === user?.id || t.id === user?.id);
   const myClasses = teacher?.classes || [];
@@ -51,7 +52,7 @@ const TeacherClasses = () => {
                     <BookOpen className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1 text-left">
-                    <h3 className="font-display text-lg font-bold text-white">{cls}</h3>
+                    <h3 className="font-display text-lg font-bold text-white">{formatClass(cls)}</h3>
                     <p className="text-xs text-white/50 font-body">
                       {classStudents.length} students · {curriculum ? curriculum.subjects.length + " subjects" : "No curriculum"}
                     </p>
