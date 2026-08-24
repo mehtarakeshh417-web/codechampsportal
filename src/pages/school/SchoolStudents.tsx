@@ -276,13 +276,16 @@ const SchoolStudents = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <span className="font-body font-bold text-white">{s.name}</span>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <span className="font-body font-bold text-white block truncate">{s.name}</span>
+                    <span className="text-xs font-body text-white/50">
+                      Username: <span className="text-neon-blue">{s.username || "—"}</span>
+                    </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex gap-3 text-xs text-white/60">
-                      <span className="px-2 py-0.5 rounded bg-neon-green/15 text-neon-green font-medium">{s.class} ({s.section || "A"})</span>
+                      <span className="px-2 py-0.5 rounded bg-neon-green/15 text-neon-green font-medium">{formatClass(s.class)} ({s.section || "A"})</span>
                       <span>Roll: {s.rollNo}</span>
                       <span className="text-white/40">Teacher: {getTeacherName(s.teacherId)}</span>
                     </div>
