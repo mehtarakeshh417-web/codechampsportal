@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { useState } from "react";
 import { getCurriculumForClass } from "@/lib/curriculumData";
+import { normalizeClass } from "@/lib/studentAccounts";
+import { useClassFormatter } from "@/lib/classNames";
 
 const TeacherClasses = () => {
   const { user } = useAuth();
