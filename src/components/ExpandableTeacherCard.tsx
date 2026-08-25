@@ -77,6 +77,9 @@ const ExpandableTeacherCard = ({
             <span className="font-body font-bold text-white block truncate">
               {teacher.firstName} {teacher.lastName}
             </span>
+            {teacher.username && (
+              <div className="text-xs text-neon-blue/80 truncate">Username: {teacher.username}</div>
+            )}
             <div className="text-xs text-white/40 mt-0.5 truncate">
               {formatClassDisplay(teacher.classes)}
             </div>
@@ -225,6 +228,9 @@ const ExpandableTeacherCard = ({
                                                     >
                                                       <span className="text-white/80 font-body truncate">
                                                         {s.name}
+                                                        {s.username && (
+                                                          <span className="text-neon-blue/80 ml-2">@{s.username}</span>
+                                                        )}
                                                       </span>
                                                       <span className="text-white/40 font-body shrink-0 ml-2">
                                                         Roll {s.rollNo}
