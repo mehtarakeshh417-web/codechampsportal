@@ -199,13 +199,14 @@ const SchoolAnalytics = () => {
                 <h2 className="font-display text-lg font-bold mb-4 flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-neon-blue" /> Students per Teacher
                 </h2>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={teacherData}>
+                {/* Horizontal layout + dynamic height so every teacher name fits */}
+                <ResponsiveContainer width="100%" height={Math.max(250, teacherData.length * 38)}>
+                  <BarChart data={teacherData} layout="vertical" margin={{ left: 20, right: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                    <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }} />
-                    <YAxis tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }} />
+                    <XAxis type="number" allowDecimals={false} tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }} />
+                    <YAxis type="category" dataKey="name" width={150} interval={0} tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 11 }} />
                     <Tooltip contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, fontSize: 12 }} />
-                    <Bar dataKey="students" fill="#00D4FF" radius={[4, 4, 0, 0]} name="Students" />
+                    <Bar dataKey="students" fill="#00D4FF" radius={[0, 4, 4, 0]} name="Students" />
                   </BarChart>
                 </ResponsiveContainer>
               </motion.div>
