@@ -51,6 +51,7 @@ const TeacherAssignments = () => {
   const teacherName = teacher ? `${teacher.firstName} ${teacher.lastName}`.trim() : "Your teacher";
   const myClasses = teacher?.classes || [];
 
+  const fmtClass = useClassFormatter();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -59,6 +60,15 @@ const TeacherAssignments = () => {
   const [form, setForm] = useState({ title: "", targetClass: myClasses[0] || "", subject: "", dueDate: "", difficultyLevel: "Medium", assignmentType: "mcq" });
   const [questions, setQuestions] = useState<Question[]>([]);
   const [qForm, setQForm] = useState({ type: "mcq" as Question["type"], question: "", options: ["", "", "", ""], correctAnswer: "" });
+
+  // Custom uploaded assignment file (PDF / Word / Excel)
+  const [attachFile, setAttachFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Reusable assignment library
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [library, setLibrary] = useState<LibraryAssignment[]>([]);
+  useEffect(() => { setLibrary(listLibrary(teacher?.id || "")); }, [teacher?.id]);
 
   // AI Generation state
   const [showAI, setShowAI] = useState(false);
