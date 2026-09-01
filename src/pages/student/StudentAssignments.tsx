@@ -96,6 +96,7 @@ const StudentAssignments = () => {
 
   const submitAssignment = async (assignment: Assignment) => {
     if (!student) return;
+    if (assignment.questions.length === 0) { toast.error("This assignment is a downloadable file — submit it to your teacher directly."); return; }
     const answered = assignment.questions.filter((q) => answers[q.id]?.trim()).length;
     if (answered < assignment.questions.length) {
       toast.error(`Please answer all questions (${answered}/${assignment.questions.length})`);
