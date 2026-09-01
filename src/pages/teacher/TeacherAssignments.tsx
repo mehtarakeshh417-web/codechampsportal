@@ -1,12 +1,16 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Plus, Trash2, CheckCircle, Clock, ChevronDown, ChevronRight, Sparkles, Play, Loader2, Users } from "lucide-react";
+import { FileText, Plus, Trash2, CheckCircle, Clock, ChevronDown, ChevronRight, Sparkles, Play, Loader2, Users, Upload, Save, Library, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getCurriculumForClass } from "@/lib/curriculumData";
 import { supabase } from "@/integrations/supabase/client";
+import { useClassFormatter } from "@/lib/classNames";
+import { listLibrary, saveToLibrary, removeFromLibrary, encodeAttachment, LibraryAssignment } from "@/lib/assignmentLibrary";
+
+const ALL_SECTIONS = "__ALL_SECTIONS__";
 
 interface Question {
   id: string;
