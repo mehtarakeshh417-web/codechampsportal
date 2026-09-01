@@ -479,9 +479,33 @@ const TeacherAssignments = () => {
                 )}
               </div>
 
-              <div className="flex gap-3 justify-end pt-2">
-                <Button variant="ghost" onClick={() => { setShowForm(false); setQuestions([]); }} className="text-white/50">Cancel</Button>
-                <Button onClick={createAssignment} className="bg-gradient-to-r from-neon-green to-neon-blue text-white">Create Assignment</Button>
+              {/* Upload a custom assignment file */}
+              <div className="border-t border-white/10 pt-4">
+                <label className="text-xs text-white/60 font-body uppercase tracking-wider mb-2 block">Upload Custom Assignment (PDF, Word, Excel)</label>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf"
+                    onChange={(e) => setAttachFile(e.target.files?.[0] || null)}
+                    className="text-sm text-white/70 font-body file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-white"
+                  />
+                  {attachFile && (
+                    <span className="text-xs text-neon-green font-body flex items-center gap-1">
+                      <Upload className="w-3.5 h-3.5" /> {attachFile.name}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-white/40 font-body mt-2">Students will be able to download this file from their Assignments page.</p>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2 flex-wrap">
+                <Button variant="ghost" onClick={() => { setShowForm(false); setQuestions([]); setAttachFile(null); }} className="text-white/50">Cancel</Button>
+                <Button variant="ghost" onClick={saveCurrentToLibrary} className="text-white border border-white/15 hover:bg-white/10">
+                  <Save className="w-4 h-4 mr-1" /> Save to Library
+                </Button>
+                <Button onClick={createAssignment} disabled={uploading} className="bg-gradient-to-r from-neon-green to-neon-blue text-white">
+                  {uploading ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Uploading…</> : "Create Assignment"}
+                </Button>
               </div>
             </div>
           </motion.div>
