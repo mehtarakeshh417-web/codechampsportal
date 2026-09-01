@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, ChevronDown, ChevronRight, Clock, CheckCircle2, Send, Loader2 } from "lucide-react";
+import { FileText, ChevronDown, ChevronRight, Clock, CheckCircle2, Send, Loader2, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { decodeAttachment } from "@/lib/assignmentLibrary";
 
 interface Question {
   id: string;
@@ -25,6 +26,8 @@ interface Assignment {
   createdAt: string;
   status: string;
   teacherName: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
 }
 
 interface Submission {
@@ -65,6 +68,7 @@ const StudentAssignments = () => {
           subject: a.subject || "", questions: (a.questions as any[]) || [],
           dueDate: a.due_date || "", createdAt: a.created_at, status: a.status,
           teacherName: a.teachers ? `${a.teachers.first_name} ${a.teachers.last_name || ""}`.trim() : "Teacher",
+          ...(() => { const d = decodeAttachment(a.description); return { attachmentUrl: d.attachmentUrl, attachmentName: d.attachmentName }; })(),
         })));
       } else { setAssignments([]); }
 
@@ -92,6 +96,7 @@ const StudentAssignments = () => {
 
   const submitAssignment = async (assignment: Assignment) => {
     if (!student) return;
+    if (assignment.questions.length === 0) { toast.error("This assignment is a downloadable file — submit it to your teacher directly."); return; }
     const answered = assignment.questions.filter((q) => answers[q.id]?.trim()).length;
     if (answered < assignment.questions.length) {
       toast.error(`Please answer all questions (${answered}/${assignment.questions.length})`);
@@ -184,6 +189,11 @@ const StudentAssignments = () => {
                         {isExpanded && (
                           <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
                             <div className="px-4 pb-4 space-y-3 border-t border-white/10 pt-3">
+                              {a.attachmentUrl && (
+                                <a href={a.attachmentUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-body text-neon-blue hover:bg-white/10 transition-colors">
+                                  <Download className="w-4 h-4" /> Download assignment file — {a.attachmentName}
+                                </a>
+                              )}
                               {submitted ? (
                                 <div className="space-y-2">
                                   <div className="bg-neon-green/10 border border-neon-green/20 rounded-xl p-4 text-center">

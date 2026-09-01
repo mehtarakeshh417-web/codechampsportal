@@ -1,12 +1,16 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Plus, Trash2, CheckCircle, Clock, ChevronDown, ChevronRight, Sparkles, Play, Loader2, Users } from "lucide-react";
+import { FileText, Plus, Trash2, CheckCircle, Clock, ChevronDown, ChevronRight, Sparkles, Play, Loader2, Users, Upload, Save, Library, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getCurriculumForClass } from "@/lib/curriculumData";
 import { supabase } from "@/integrations/supabase/client";
+import { useClassFormatter } from "@/lib/classNames";
+import { listLibrary, saveToLibrary, removeFromLibrary, encodeAttachment, LibraryAssignment } from "@/lib/assignmentLibrary";
+
+const ALL_SECTIONS = "__ALL_SECTIONS__";
 
 interface Question {
   id: string;
@@ -47,6 +51,7 @@ const TeacherAssignments = () => {
   const teacherName = teacher ? `${teacher.firstName} ${teacher.lastName}`.trim() : "Your teacher";
   const myClasses = teacher?.classes || [];
 
+  const fmtClass = useClassFormatter();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -55,6 +60,15 @@ const TeacherAssignments = () => {
   const [form, setForm] = useState({ title: "", targetClass: myClasses[0] || "", subject: "", dueDate: "", difficultyLevel: "Medium", assignmentType: "mcq" });
   const [questions, setQuestions] = useState<Question[]>([]);
   const [qForm, setQForm] = useState({ type: "mcq" as Question["type"], question: "", options: ["", "", "", ""], correctAnswer: "" });
+
+  // Custom uploaded assignment file (PDF / Word / Excel)
+  const [attachFile, setAttachFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Reusable assignment library
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [library, setLibrary] = useState<LibraryAssignment[]>([]);
+  useEffect(() => { setLibrary(listLibrary(teacher?.id || "")); }, [teacher?.id]);
 
   // AI Generation state
   const [showAI, setShowAI] = useState(false);
@@ -187,32 +201,50 @@ const TeacherAssignments = () => {
 
   const createAssignment = useCallback(async () => {
     if (!form.title.trim() || !form.targetClass || !form.subject.trim()) { toast.error("Fill all fields"); return; }
-    if (questions.length === 0) { toast.error("Add at least 1 question"); return; }
+    if (questions.length === 0 && !attachFile) { toast.error("Add at least 1 question or upload an assignment file"); return; }
     if (!teacher?.id || !teacher?.schoolId) { toast.error("Teacher data not loaded"); return; }
 
-    const { error } = await supabase.from("assignments").insert({
-      title: form.title,
-      description: "",
-      assignment_type: form.assignmentType,
-      target_class: form.targetClass,
-      subject: form.subject,
-      school_id: teacher.schoolId,
-      teacher_id: teacher.id,
-      difficulty_level: form.difficultyLevel,
-      questions: questions as any,
-      due_date: form.dueDate,
-      status: "active",
-    });
+    // Upload the custom assignment file (PDF / Word / Excel) if one was picked.
+    let attachmentUrl = "";
+    let attachmentName = "";
+    if (attachFile) {
+      setUploading(true);
+      const path = `assignments/${teacher.id}/${Date.now()}-${attachFile.name}`;
+      const { error: upErr } = await supabase.storage.from("project-files").upload(path, attachFile);
+      setUploading(false);
+      if (upErr) { toast.error("File upload failed: " + upErr.message); return; }
+      attachmentUrl = supabase.storage.from("project-files").getPublicUrl(path).data.publicUrl;
+      attachmentName = attachFile.name;
+    }
+
+    const targets = form.targetClass === ALL_SECTIONS ? myClasses : [form.targetClass];
+    if (targets.length === 0) { toast.error("No classes assigned to you"); return; }
+
+    const { error } = await supabase.from("assignments").insert(
+      targets.map((t) => ({
+        title: form.title,
+        description: encodeAttachment(attachmentUrl, attachmentName),
+        assignment_type: attachFile && questions.length === 0 ? "file" : form.assignmentType,
+        target_class: t,
+        subject: form.subject,
+        school_id: teacher.schoolId,
+        teacher_id: teacher.id,
+        difficulty_level: form.difficultyLevel,
+        questions: questions as any,
+        due_date: form.dueDate,
+        status: "active",
+      })) as any,
+    );
 
     if (error) { toast.error("Failed to save assignment: " + error.message); return; }
 
-    // Send notifications to students in this class
+    // Send notifications to students in every targeted class-section
     const allStudents = getTeacherStudents(user?.id || "");
-    const classStudents = allStudents.filter((s) => `${s.class}-${s.section}` === form.targetClass);
+    const classStudents = allStudents.filter((s) => targets.includes(`${s.class}-${s.section}`));
     const notifInserts = classStudents.filter(s => s.user_id).map(s => ({
       user_id: s.user_id!,
       title: "📝 New Assignment from " + teacherName,
-      message: `${teacherName} has assigned "${form.title}" (${form.subject}) to your class. It has ${questions.length} question(s)${form.dueDate ? ` and is due by ${new Date(form.dueDate).toLocaleDateString()}` : ""}. Good luck!`,
+      message: `${teacherName} has assigned "${form.title}" (${form.subject}) to your class.${questions.length ? ` It has ${questions.length} question(s)` : " A file has been attached."}${form.dueDate ? ` Due by ${new Date(form.dueDate).toLocaleDateString()}.` : ""}`,
       type: "assignment_assigned",
     }));
     if (notifInserts.length > 0) {
@@ -222,9 +254,38 @@ const TeacherAssignments = () => {
     await fetchAssignments();
     setShowForm(false);
     setQuestions([]);
+    setAttachFile(null);
     setForm({ title: "", targetClass: myClasses[0] || "", subject: "", dueDate: "", difficultyLevel: "Medium", assignmentType: "mcq" });
-    toast.success("Assignment created!");
-  }, [form, questions, teacher, myClasses, fetchAssignments]);
+    toast.success(targets.length > 1 ? `Assignment sent to ${targets.length} sections!` : "Assignment created!");
+  }, [form, questions, teacher, myClasses, fetchAssignments, attachFile, getTeacherStudents, teacherName, user?.id]);
+
+  const saveCurrentToLibrary = () => {
+    if (!form.title.trim()) { toast.error("Add a title before saving to the library"); return; }
+    saveToLibrary(teacher?.id || "", {
+      title: form.title,
+      subject: form.subject,
+      difficultyLevel: form.difficultyLevel,
+      assignmentType: form.assignmentType,
+      questions: questions as any,
+    });
+    setLibrary(listLibrary(teacher?.id || ""));
+    toast.success("Saved to your assignment library");
+  };
+
+  const loadFromLibrary = (item: LibraryAssignment) => {
+    setForm((f) => ({
+      ...f,
+      title: item.title,
+      subject: item.subject,
+      difficultyLevel: item.difficultyLevel,
+      assignmentType: item.assignmentType,
+    }));
+    setQuestions(item.questions as any);
+    setShowLibrary(false);
+    setShowForm(true);
+    toast.success(`Loaded "${item.title}" — pick a class and send it`);
+  };
+
 
   const deleteAssignment = async (id: string) => {
     const { error } = await supabase.from("assignments").delete().eq("id", id);
@@ -240,10 +301,42 @@ const TeacherAssignments = () => {
           <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">Assignments</span></h1>
           <p className="text-white/70 font-body">{assignments.length} assignment(s) created</p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} className="bg-gradient-to-r from-neon-blue to-neon-purple text-white">
-          <Plus className="w-4 h-4 mr-1" /> New Assignment
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => setShowLibrary(!showLibrary)} className="text-white border border-white/15 hover:bg-white/10">
+            <Library className="w-4 h-4 mr-1" /> Library ({library.length})
+          </Button>
+          <Button onClick={() => setShowForm(!showForm)} className="bg-gradient-to-r from-neon-blue to-neon-purple text-white">
+            <Plus className="w-4 h-4 mr-1" /> New Assignment
+          </Button>
+        </div>
       </motion.div>
+
+      {/* Saved assignment library */}
+      <AnimatePresence>
+        {showLibrary && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mb-6">
+            <div className="glass-card p-6 space-y-3">
+              <h2 className="font-display text-lg font-bold text-white">Assignment Library</h2>
+              {library.length === 0 ? (
+                <p className="text-white/50 text-sm font-body">No saved assignments yet. Build one and hit “Save to Library” to reuse it later.</p>
+              ) : library.map((item) => (
+                <div key={item.id} className="flex items-center justify-between gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-white font-body font-bold truncate">{item.title}</p>
+                    <p className="text-xs text-white/50">{item.subject || "No subject"} · {item.questions.length} question(s) · saved {new Date(item.savedAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" variant="hero" onClick={() => loadFromLibrary(item)}>Reuse</Button>
+                    <Button size="sm" variant="ghost" className="text-white/40 hover:text-destructive" onClick={() => { setLibrary(removeFromLibrary(teacher?.id || "", item.id)); }}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Create Form */}
       <AnimatePresence>
@@ -254,7 +347,8 @@ const TeacherAssignments = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Assignment Title" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50" />
                 <select value={form.targetClass} onChange={(e) => setForm({ ...form, targetClass: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50">
-                  {myClasses.map((c) => <option key={c} value={c} className="bg-[hsl(220,30%,15%)]">{c}</option>)}
+                  {myClasses.map((c) => <option key={c} value={c} className="bg-[hsl(220,30%,15%)]">{fmtClass(c)}</option>)}
+                  {myClasses.length > 1 && <option value={ALL_SECTIONS} className="bg-[hsl(220,30%,15%)]">All Sections ({myClasses.length})</option>}
                 </select>
                 <input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Subject" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50" />
                 <input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50" />
@@ -385,9 +479,33 @@ const TeacherAssignments = () => {
                 )}
               </div>
 
-              <div className="flex gap-3 justify-end pt-2">
-                <Button variant="ghost" onClick={() => { setShowForm(false); setQuestions([]); }} className="text-white/50">Cancel</Button>
-                <Button onClick={createAssignment} className="bg-gradient-to-r from-neon-green to-neon-blue text-white">Create Assignment</Button>
+              {/* Upload a custom assignment file */}
+              <div className="border-t border-white/10 pt-4">
+                <label className="text-xs text-white/60 font-body uppercase tracking-wider mb-2 block">Upload Custom Assignment (PDF, Word, Excel)</label>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf"
+                    onChange={(e) => setAttachFile(e.target.files?.[0] || null)}
+                    className="text-sm text-white/70 font-body file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-white"
+                  />
+                  {attachFile && (
+                    <span className="text-xs text-neon-green font-body flex items-center gap-1">
+                      <Upload className="w-3.5 h-3.5" /> {attachFile.name}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-white/40 font-body mt-2">Students will be able to download this file from their Assignments page.</p>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2 flex-wrap">
+                <Button variant="ghost" onClick={() => { setShowForm(false); setQuestions([]); setAttachFile(null); }} className="text-white/50">Cancel</Button>
+                <Button variant="ghost" onClick={saveCurrentToLibrary} className="text-white border border-white/15 hover:bg-white/10">
+                  <Save className="w-4 h-4 mr-1" /> Save to Library
+                </Button>
+                <Button onClick={createAssignment} disabled={uploading} className="bg-gradient-to-r from-neon-green to-neon-blue text-white">
+                  {uploading ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Uploading…</> : "Create Assignment"}
+                </Button>
               </div>
             </div>
           </motion.div>
