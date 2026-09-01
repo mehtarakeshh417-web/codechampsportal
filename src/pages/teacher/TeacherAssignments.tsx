@@ -201,32 +201,50 @@ const TeacherAssignments = () => {
 
   const createAssignment = useCallback(async () => {
     if (!form.title.trim() || !form.targetClass || !form.subject.trim()) { toast.error("Fill all fields"); return; }
-    if (questions.length === 0) { toast.error("Add at least 1 question"); return; }
+    if (questions.length === 0 && !attachFile) { toast.error("Add at least 1 question or upload an assignment file"); return; }
     if (!teacher?.id || !teacher?.schoolId) { toast.error("Teacher data not loaded"); return; }
 
-    const { error } = await supabase.from("assignments").insert({
-      title: form.title,
-      description: "",
-      assignment_type: form.assignmentType,
-      target_class: form.targetClass,
-      subject: form.subject,
-      school_id: teacher.schoolId,
-      teacher_id: teacher.id,
-      difficulty_level: form.difficultyLevel,
-      questions: questions as any,
-      due_date: form.dueDate,
-      status: "active",
-    });
+    // Upload the custom assignment file (PDF / Word / Excel) if one was picked.
+    let attachmentUrl = "";
+    let attachmentName = "";
+    if (attachFile) {
+      setUploading(true);
+      const path = `assignments/${teacher.id}/${Date.now()}-${attachFile.name}`;
+      const { error: upErr } = await supabase.storage.from("project-files").upload(path, attachFile);
+      setUploading(false);
+      if (upErr) { toast.error("File upload failed: " + upErr.message); return; }
+      attachmentUrl = supabase.storage.from("project-files").getPublicUrl(path).data.publicUrl;
+      attachmentName = attachFile.name;
+    }
+
+    const targets = form.targetClass === ALL_SECTIONS ? myClasses : [form.targetClass];
+    if (targets.length === 0) { toast.error("No classes assigned to you"); return; }
+
+    const { error } = await supabase.from("assignments").insert(
+      targets.map((t) => ({
+        title: form.title,
+        description: encodeAttachment(attachmentUrl, attachmentName),
+        assignment_type: attachFile && questions.length === 0 ? "file" : form.assignmentType,
+        target_class: t,
+        subject: form.subject,
+        school_id: teacher.schoolId,
+        teacher_id: teacher.id,
+        difficulty_level: form.difficultyLevel,
+        questions: questions as any,
+        due_date: form.dueDate,
+        status: "active",
+      })) as any,
+    );
 
     if (error) { toast.error("Failed to save assignment: " + error.message); return; }
 
-    // Send notifications to students in this class
+    // Send notifications to students in every targeted class-section
     const allStudents = getTeacherStudents(user?.id || "");
-    const classStudents = allStudents.filter((s) => `${s.class}-${s.section}` === form.targetClass);
+    const classStudents = allStudents.filter((s) => targets.includes(`${s.class}-${s.section}`));
     const notifInserts = classStudents.filter(s => s.user_id).map(s => ({
       user_id: s.user_id!,
       title: "📝 New Assignment from " + teacherName,
-      message: `${teacherName} has assigned "${form.title}" (${form.subject}) to your class. It has ${questions.length} question(s)${form.dueDate ? ` and is due by ${new Date(form.dueDate).toLocaleDateString()}` : ""}. Good luck!`,
+      message: `${teacherName} has assigned "${form.title}" (${form.subject}) to your class.${questions.length ? ` It has ${questions.length} question(s)` : " A file has been attached."}${form.dueDate ? ` Due by ${new Date(form.dueDate).toLocaleDateString()}.` : ""}`,
       type: "assignment_assigned",
     }));
     if (notifInserts.length > 0) {
@@ -236,9 +254,38 @@ const TeacherAssignments = () => {
     await fetchAssignments();
     setShowForm(false);
     setQuestions([]);
+    setAttachFile(null);
     setForm({ title: "", targetClass: myClasses[0] || "", subject: "", dueDate: "", difficultyLevel: "Medium", assignmentType: "mcq" });
-    toast.success("Assignment created!");
-  }, [form, questions, teacher, myClasses, fetchAssignments]);
+    toast.success(targets.length > 1 ? `Assignment sent to ${targets.length} sections!` : "Assignment created!");
+  }, [form, questions, teacher, myClasses, fetchAssignments, attachFile, getTeacherStudents, teacherName, user?.id]);
+
+  const saveCurrentToLibrary = () => {
+    if (!form.title.trim()) { toast.error("Add a title before saving to the library"); return; }
+    saveToLibrary(teacher?.id || "", {
+      title: form.title,
+      subject: form.subject,
+      difficultyLevel: form.difficultyLevel,
+      assignmentType: form.assignmentType,
+      questions: questions as any,
+    });
+    setLibrary(listLibrary(teacher?.id || ""));
+    toast.success("Saved to your assignment library");
+  };
+
+  const loadFromLibrary = (item: LibraryAssignment) => {
+    setForm((f) => ({
+      ...f,
+      title: item.title,
+      subject: item.subject,
+      difficultyLevel: item.difficultyLevel,
+      assignmentType: item.assignmentType,
+    }));
+    setQuestions(item.questions as any);
+    setShowLibrary(false);
+    setShowForm(true);
+    toast.success(`Loaded "${item.title}" — pick a class and send it`);
+  };
+
 
   const deleteAssignment = async (id: string) => {
     const { error } = await supabase.from("assignments").delete().eq("id", id);
