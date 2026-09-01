@@ -301,10 +301,42 @@ const TeacherAssignments = () => {
           <h1 className="font-display text-3xl font-bold mb-1 text-white"><span className="text-gradient-brand">Assignments</span></h1>
           <p className="text-white/70 font-body">{assignments.length} assignment(s) created</p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} className="bg-gradient-to-r from-neon-blue to-neon-purple text-white">
-          <Plus className="w-4 h-4 mr-1" /> New Assignment
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => setShowLibrary(!showLibrary)} className="text-white border border-white/15 hover:bg-white/10">
+            <Library className="w-4 h-4 mr-1" /> Library ({library.length})
+          </Button>
+          <Button onClick={() => setShowForm(!showForm)} className="bg-gradient-to-r from-neon-blue to-neon-purple text-white">
+            <Plus className="w-4 h-4 mr-1" /> New Assignment
+          </Button>
+        </div>
       </motion.div>
+
+      {/* Saved assignment library */}
+      <AnimatePresence>
+        {showLibrary && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mb-6">
+            <div className="glass-card p-6 space-y-3">
+              <h2 className="font-display text-lg font-bold text-white">Assignment Library</h2>
+              {library.length === 0 ? (
+                <p className="text-white/50 text-sm font-body">No saved assignments yet. Build one and hit “Save to Library” to reuse it later.</p>
+              ) : library.map((item) => (
+                <div key={item.id} className="flex items-center justify-between gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-white font-body font-bold truncate">{item.title}</p>
+                    <p className="text-xs text-white/50">{item.subject || "No subject"} · {item.questions.length} question(s) · saved {new Date(item.savedAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" variant="hero" onClick={() => loadFromLibrary(item)}>Reuse</Button>
+                    <Button size="sm" variant="ghost" className="text-white/40 hover:text-destructive" onClick={() => { setLibrary(removeFromLibrary(teacher?.id || "", item.id)); }}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Create Form */}
       <AnimatePresence>
@@ -315,7 +347,8 @@ const TeacherAssignments = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Assignment Title" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50" />
                 <select value={form.targetClass} onChange={(e) => setForm({ ...form, targetClass: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50">
-                  {myClasses.map((c) => <option key={c} value={c} className="bg-[hsl(220,30%,15%)]">{c}</option>)}
+                  {myClasses.map((c) => <option key={c} value={c} className="bg-[hsl(220,30%,15%)]">{fmtClass(c)}</option>)}
+                  {myClasses.length > 1 && <option value={ALL_SECTIONS} className="bg-[hsl(220,30%,15%)]">All Sections ({myClasses.length})</option>}
                 </select>
                 <input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Subject" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50" />
                 <input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50" />
