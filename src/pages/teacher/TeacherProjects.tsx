@@ -307,11 +307,15 @@ const TeacherProjects = () => {
                   <label className="text-xs text-white/50 font-body mb-1 block">Project Title *</label>
                   <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. My First Scratch Game" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-[hsl(var(--primary))]/50" />
                 </div>
-                <div>
-                  <label className="text-xs text-white/50 font-body mb-1 block">Class *</label>
-                  <select value={form.targetClass} onChange={(e) => setForm({ ...form, targetClass: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-[hsl(var(--primary))]/50">
-                    {myClasses.map((c) => <option key={c} value={c} className="bg-[hsl(220,30%,15%)]">{c}</option>)}
-                  </select>
+                <div className="md:col-span-2">
+                  <label className="text-xs text-white/50 font-body mb-1 block">Class &amp; Sections *</label>
+                  <ClassSectionPicker
+                    classes={myClasses}
+                    selectedClass={form.targetClass}
+                    selectedSections={form.targetSections}
+                    onChange={(cls, secs) => setForm({ ...form, targetClass: cls, targetSections: secs })}
+                    label="Assign To"
+                  />
                 </div>
               </div>
 
