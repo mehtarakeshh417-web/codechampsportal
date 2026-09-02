@@ -260,8 +260,8 @@ const TeacherAssignments = () => {
     setShowForm(false);
     setQuestions([]);
     setAttachFile(null);
-    setForm({ title: "", targetClass: myClasses[0] || "", subject: "", dueDate: "", difficultyLevel: "Medium", assignmentType: "mcq" });
-    toast.success(targets.length > 1 ? `Assignment sent to ${targets.length} sections!` : "Assignment created!");
+    setForm({ title: "", targetClass: firstClass, targetSections: [(classGroups[firstClass] || [])[0]].filter(Boolean), subject: "", dueDate: "", difficultyLevel: "Medium", assignmentType: "mcq" });
+    toast.success(`Assignment sent to ${fmtClass(form.targetClass)} — Section${targets.length > 1 ? "s" : ""} ${form.targetSections.join(", ")}`);
   }, [form, questions, teacher, myClasses, fetchAssignments, attachFile, getTeacherStudents, teacherName, user?.id]);
 
   const saveCurrentToLibrary = () => {
