@@ -351,10 +351,14 @@ const TeacherAssignments = () => {
               <h2 className="font-display text-lg font-bold text-white">Create Assignment</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Assignment Title" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50" />
-                <select value={form.targetClass} onChange={(e) => setForm({ ...form, targetClass: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50">
-                  {myClasses.map((c) => <option key={c} value={c} className="bg-[hsl(220,30%,15%)]">{fmtClass(c)}</option>)}
-                  {myClasses.length > 1 && <option value={ALL_SECTIONS} className="bg-[hsl(220,30%,15%)]">All Sections ({myClasses.length})</option>}
-                </select>
+                <div className="md:col-span-2">
+                  <ClassSectionPicker
+                    classes={myClasses}
+                    selectedClass={form.targetClass}
+                    selectedSections={form.targetSections}
+                    onChange={(cls, secs) => setForm({ ...form, targetClass: cls, targetSections: secs })}
+                  />
+                </div>
                 <input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Subject" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50" />
                 <input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50" />
                 <select value={form.difficultyLevel} onChange={(e) => setForm({ ...form, difficultyLevel: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50">
