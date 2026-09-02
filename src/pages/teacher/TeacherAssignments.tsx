@@ -9,8 +9,8 @@ import { getCurriculumForClass } from "@/lib/curriculumData";
 import { supabase } from "@/integrations/supabase/client";
 import { useClassFormatter } from "@/lib/classNames";
 import { listLibrary, saveToLibrary, removeFromLibrary, encodeAttachment, LibraryAssignment } from "@/lib/assignmentLibrary";
+import ClassSectionPicker, { groupClassSections } from "@/components/ClassSectionPicker";
 
-const ALL_SECTIONS = "__ALL_SECTIONS__";
 
 interface Question {
   id: string;
