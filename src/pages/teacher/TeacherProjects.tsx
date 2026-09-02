@@ -7,6 +7,7 @@ import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import ClassSectionPicker, { groupClassSections } from "@/components/ClassSectionPicker";
 
 interface Project {
   id: string;
