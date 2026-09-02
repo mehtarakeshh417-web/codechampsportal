@@ -132,12 +132,15 @@ const TeacherAssignments = () => {
 
   useEffect(() => { fetchAssignments(); }, [fetchAssignments]);
 
-  // Update form when myClasses loads
+  // Default the picker to the first class + its first section once classes load
   useEffect(() => {
-    if (myClasses.length > 0 && !form.targetClass) {
-      setForm(f => ({ ...f, targetClass: myClasses[0] }));
+    if (firstClass && !form.targetClass) {
+      setForm(f => ({ ...f, targetClass: firstClass, targetSections: [(classGroups[firstClass] || [])[0]].filter(Boolean) }));
+    } else if (form.targetClass && form.targetSections.length === 0) {
+      const secs = classGroups[form.targetClass] || [];
+      if (secs.length > 0) setForm(f => ({ ...f, targetSections: [secs[0]] }));
     }
-  }, [myClasses]);
+  }, [firstClass, form.targetClass, form.targetSections.length]);
 
   const addQuestion = useCallback(() => {
     if (!qForm.question.trim()) { toast.error("Enter a question"); return; }
