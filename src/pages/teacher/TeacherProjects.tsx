@@ -7,6 +7,7 @@ import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import ClassSectionPicker, { groupClassSections } from "@/components/ClassSectionPicker";
 
 interface Project {
   id: string;
@@ -54,6 +55,8 @@ const TeacherProjects = () => {
   const { teachers, getTeacherStudents } = useData();
   const teacher = teachers.find((t) => t.user_id === user?.id || t.id === user?.id);
   const myClasses = teacher?.classes || [];
+  const classGroups = groupClassSections(myClasses);
+  const firstClass = Object.keys(classGroups).sort()[0] || "";
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +68,7 @@ const TeacherProjects = () => {
   const [activeTab, setActiveTab] = useState<"details" | "submissions" | "analytics">("details");
 
   const [form, setForm] = useState({
-    title: "", description: "", targetClass: myClasses[0] || "", technology: TECH_OPTIONS[0],
+    title: "", description: "", targetClass: firstClass, targetSections: [] as string[], technology: TECH_OPTIONS[0],
     submissionType: SUBMISSION_TYPES[0], dueDate: "", learningObjective: "",
     instructions: [""], referenceResources: [""], expectedOutput: "",
     maxMarks: 100, difficultyLevel: "Medium", estimatedTime: "",
@@ -129,33 +132,42 @@ const TeacherProjects = () => {
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
   useEffect(() => {
-    if (myClasses.length > 0 && !form.targetClass) setForm(f => ({ ...f, targetClass: myClasses[0] }));
-  }, [myClasses]);
+    if (firstClass && !form.targetClass) {
+      setForm(f => ({ ...f, targetClass: firstClass, targetSections: [(classGroups[firstClass] || [])[0]].filter(Boolean) }));
+    } else if (form.targetClass && form.targetSections.length === 0) {
+      const secs = classGroups[form.targetClass] || [];
+      if (secs.length > 0) setForm(f => ({ ...f, targetSections: [secs[0]] }));
+    }
+  }, [firstClass, form.targetClass, form.targetSections.length]);
 
   const createProject = useCallback(async () => {
     if (!form.title.trim() || !form.description.trim() || !form.targetClass) { toast.error("Fill required fields"); return; }
+    if (form.targetSections.length === 0) { toast.error("Select at least one section"); return; }
     if (!teacher?.id || !teacher?.schoolId) { toast.error("Teacher data not loaded"); return; }
 
     const filteredInstructions = form.instructions.filter(i => i.trim());
     const filteredResources = form.referenceResources.filter(r => r.trim());
+    const targets = form.targetSections.map((sec) => `${form.targetClass}-${sec}`);
 
-    const { error } = await supabase.from("projects").insert({
-      title: form.title, description: form.description,
-      target_class: form.targetClass, technology: form.technology,
-      submission_type: form.submissionType,
-      school_id: teacher.schoolId, teacher_id: teacher.id,
-      due_date: form.dueDate, learning_objective: form.learningObjective,
-      instructions: filteredInstructions, reference_resources: filteredResources,
-      expected_output: form.expectedOutput, max_marks: form.maxMarks,
-      difficulty_level: form.difficultyLevel, estimated_time: form.estimatedTime,
-    } as any);
+    const { error } = await supabase.from("projects").insert(
+      targets.map((target) => ({
+        title: form.title, description: form.description,
+        target_class: target, technology: form.technology,
+        submission_type: form.submissionType,
+        school_id: teacher.schoolId, teacher_id: teacher.id,
+        due_date: form.dueDate, learning_objective: form.learningObjective,
+        instructions: filteredInstructions, reference_resources: filteredResources,
+        expected_output: form.expectedOutput, max_marks: form.maxMarks,
+        difficulty_level: form.difficultyLevel, estimated_time: form.estimatedTime,
+      })) as any,
+    );
 
     if (error) { toast.error("Failed to save project: " + error.message); return; }
 
-    // Send notifications to students in this class
+    // Send notifications to students in the selected sections
     const teacherDisplayName = teacher ? `${teacher.firstName} ${teacher.lastName}`.trim() : "Your teacher";
     const allStudents2 = getTeacherStudents(user?.id || "");
-    const classStudents2 = allStudents2.filter((s) => `${s.class}-${s.section}` === form.targetClass);
+    const classStudents2 = allStudents2.filter((s) => targets.includes(`${s.class}-${s.section}`));
     const notifInserts = classStudents2.filter(s => s.user_id).map(s => ({
       user_id: s.user_id!,
       title: `🚀 New Project from ${teacherDisplayName}`,
@@ -168,9 +180,9 @@ const TeacherProjects = () => {
 
     await fetchProjects();
     setShowForm(false);
-    setForm({ title: "", description: "", targetClass: myClasses[0] || "", technology: TECH_OPTIONS[0], submissionType: SUBMISSION_TYPES[0], dueDate: "", learningObjective: "", instructions: [""], referenceResources: [""], expectedOutput: "", maxMarks: 100, difficultyLevel: "Medium", estimatedTime: "" });
-    toast.success("Project assigned!");
-  }, [form, teacher, myClasses, fetchProjects, getTeacherStudents, user?.id]);
+    setForm({ title: "", description: "", targetClass: firstClass, targetSections: [(classGroups[firstClass] || [])[0]].filter(Boolean), technology: TECH_OPTIONS[0], submissionType: SUBMISSION_TYPES[0], dueDate: "", learningObjective: "", instructions: [""], referenceResources: [""], expectedOutput: "", maxMarks: 100, difficultyLevel: "Medium", estimatedTime: "" });
+    toast.success(`Project assigned to ${targets.length} section${targets.length > 1 ? "s" : ""}!`);
+  }, [form, teacher, firstClass, fetchProjects, getTeacherStudents, user?.id]);
 
   const deleteProject = async (id: string) => {
     const { error } = await supabase.from("projects").delete().eq("id", id);
@@ -295,11 +307,15 @@ const TeacherProjects = () => {
                   <label className="text-xs text-white/50 font-body mb-1 block">Project Title *</label>
                   <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. My First Scratch Game" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-[hsl(var(--primary))]/50" />
                 </div>
-                <div>
-                  <label className="text-xs text-white/50 font-body mb-1 block">Class *</label>
-                  <select value={form.targetClass} onChange={(e) => setForm({ ...form, targetClass: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-[hsl(var(--primary))]/50">
-                    {myClasses.map((c) => <option key={c} value={c} className="bg-[hsl(220,30%,15%)]">{c}</option>)}
-                  </select>
+                <div className="md:col-span-2">
+                  <label className="text-xs text-white/50 font-body mb-1 block">Class &amp; Sections *</label>
+                  <ClassSectionPicker
+                    classes={myClasses}
+                    selectedClass={form.targetClass}
+                    selectedSections={form.targetSections}
+                    onChange={(cls, secs) => setForm({ ...form, targetClass: cls, targetSections: secs })}
+                    label="Assign To"
+                  />
                 </div>
               </div>
 

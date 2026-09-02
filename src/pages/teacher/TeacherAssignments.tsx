@@ -9,8 +9,8 @@ import { getCurriculumForClass } from "@/lib/curriculumData";
 import { supabase } from "@/integrations/supabase/client";
 import { useClassFormatter } from "@/lib/classNames";
 import { listLibrary, saveToLibrary, removeFromLibrary, encodeAttachment, LibraryAssignment } from "@/lib/assignmentLibrary";
+import ClassSectionPicker, { groupClassSections } from "@/components/ClassSectionPicker";
 
-const ALL_SECTIONS = "__ALL_SECTIONS__";
 
 interface Question {
   id: string;
@@ -50,6 +50,8 @@ const TeacherAssignments = () => {
   const teacher = teachers.find((t) => t.user_id === user?.id || t.id === user?.id);
   const teacherName = teacher ? `${teacher.firstName} ${teacher.lastName}`.trim() : "Your teacher";
   const myClasses = teacher?.classes || [];
+  const classGroups = groupClassSections(myClasses);
+  const firstClass = Object.keys(classGroups).sort()[0] || "";
 
   const fmtClass = useClassFormatter();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -57,7 +59,7 @@ const TeacherAssignments = () => {
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [submissionsMap, setSubmissionsMap] = useState<Record<string, SubmissionRecord[]>>({});
-  const [form, setForm] = useState({ title: "", targetClass: myClasses[0] || "", subject: "", dueDate: "", difficultyLevel: "Medium", assignmentType: "mcq" });
+  const [form, setForm] = useState({ title: "", targetClass: firstClass, targetSections: [] as string[], subject: "", dueDate: "", difficultyLevel: "Medium", assignmentType: "mcq" });
   const [questions, setQuestions] = useState<Question[]>([]);
   const [qForm, setQForm] = useState({ type: "mcq" as Question["type"], question: "", options: ["", "", "", ""], correctAnswer: "" });
 
@@ -130,12 +132,15 @@ const TeacherAssignments = () => {
 
   useEffect(() => { fetchAssignments(); }, [fetchAssignments]);
 
-  // Update form when myClasses loads
+  // Default the picker to the first class + its first section once classes load
   useEffect(() => {
-    if (myClasses.length > 0 && !form.targetClass) {
-      setForm(f => ({ ...f, targetClass: myClasses[0] }));
+    if (firstClass && !form.targetClass) {
+      setForm(f => ({ ...f, targetClass: firstClass, targetSections: [(classGroups[firstClass] || [])[0]].filter(Boolean) }));
+    } else if (form.targetClass && form.targetSections.length === 0) {
+      const secs = classGroups[form.targetClass] || [];
+      if (secs.length > 0) setForm(f => ({ ...f, targetSections: [secs[0]] }));
     }
-  }, [myClasses]);
+  }, [firstClass, form.targetClass, form.targetSections.length]);
 
   const addQuestion = useCallback(() => {
     if (!qForm.question.trim()) { toast.error("Enter a question"); return; }
@@ -217,8 +222,8 @@ const TeacherAssignments = () => {
       attachmentName = attachFile.name;
     }
 
-    const targets = form.targetClass === ALL_SECTIONS ? myClasses : [form.targetClass];
-    if (targets.length === 0) { toast.error("No classes assigned to you"); return; }
+    const targets = form.targetSections.map((sec) => `${form.targetClass}-${sec}`);
+    if (targets.length === 0) { toast.error("Select at least one section"); return; }
 
     const { error } = await supabase.from("assignments").insert(
       targets.map((t) => ({
@@ -255,8 +260,8 @@ const TeacherAssignments = () => {
     setShowForm(false);
     setQuestions([]);
     setAttachFile(null);
-    setForm({ title: "", targetClass: myClasses[0] || "", subject: "", dueDate: "", difficultyLevel: "Medium", assignmentType: "mcq" });
-    toast.success(targets.length > 1 ? `Assignment sent to ${targets.length} sections!` : "Assignment created!");
+    setForm({ title: "", targetClass: firstClass, targetSections: [(classGroups[firstClass] || [])[0]].filter(Boolean), subject: "", dueDate: "", difficultyLevel: "Medium", assignmentType: "mcq" });
+    toast.success(`Assignment sent to ${fmtClass(form.targetClass)} — Section${targets.length > 1 ? "s" : ""} ${form.targetSections.join(", ")}`);
   }, [form, questions, teacher, myClasses, fetchAssignments, attachFile, getTeacherStudents, teacherName, user?.id]);
 
   const saveCurrentToLibrary = () => {
@@ -346,10 +351,14 @@ const TeacherAssignments = () => {
               <h2 className="font-display text-lg font-bold text-white">Create Assignment</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Assignment Title" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50" />
-                <select value={form.targetClass} onChange={(e) => setForm({ ...form, targetClass: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50">
-                  {myClasses.map((c) => <option key={c} value={c} className="bg-[hsl(220,30%,15%)]">{fmtClass(c)}</option>)}
-                  {myClasses.length > 1 && <option value={ALL_SECTIONS} className="bg-[hsl(220,30%,15%)]">All Sections ({myClasses.length})</option>}
-                </select>
+                <div className="md:col-span-2">
+                  <ClassSectionPicker
+                    classes={myClasses}
+                    selectedClass={form.targetClass}
+                    selectedSections={form.targetSections}
+                    onChange={(cls, secs) => setForm({ ...form, targetClass: cls, targetSections: secs })}
+                  />
+                </div>
                 <input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Subject" className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50" />
                 <input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50" />
                 <select value={form.difficultyLevel} onChange={(e) => setForm({ ...form, difficultyLevel: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-body focus:outline-none focus:border-primary/50">
