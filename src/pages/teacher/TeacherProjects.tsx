@@ -132,33 +132,42 @@ const TeacherProjects = () => {
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
   useEffect(() => {
-    if (myClasses.length > 0 && !form.targetClass) setForm(f => ({ ...f, targetClass: myClasses[0] }));
-  }, [myClasses]);
+    if (firstClass && !form.targetClass) {
+      setForm(f => ({ ...f, targetClass: firstClass, targetSections: [(classGroups[firstClass] || [])[0]].filter(Boolean) }));
+    } else if (form.targetClass && form.targetSections.length === 0) {
+      const secs = classGroups[form.targetClass] || [];
+      if (secs.length > 0) setForm(f => ({ ...f, targetSections: [secs[0]] }));
+    }
+  }, [firstClass, form.targetClass, form.targetSections.length]);
 
   const createProject = useCallback(async () => {
     if (!form.title.trim() || !form.description.trim() || !form.targetClass) { toast.error("Fill required fields"); return; }
+    if (form.targetSections.length === 0) { toast.error("Select at least one section"); return; }
     if (!teacher?.id || !teacher?.schoolId) { toast.error("Teacher data not loaded"); return; }
 
     const filteredInstructions = form.instructions.filter(i => i.trim());
     const filteredResources = form.referenceResources.filter(r => r.trim());
+    const targets = form.targetSections.map((sec) => `${form.targetClass}-${sec}`);
 
-    const { error } = await supabase.from("projects").insert({
-      title: form.title, description: form.description,
-      target_class: form.targetClass, technology: form.technology,
-      submission_type: form.submissionType,
-      school_id: teacher.schoolId, teacher_id: teacher.id,
-      due_date: form.dueDate, learning_objective: form.learningObjective,
-      instructions: filteredInstructions, reference_resources: filteredResources,
-      expected_output: form.expectedOutput, max_marks: form.maxMarks,
-      difficulty_level: form.difficultyLevel, estimated_time: form.estimatedTime,
-    } as any);
+    const { error } = await supabase.from("projects").insert(
+      targets.map((target) => ({
+        title: form.title, description: form.description,
+        target_class: target, technology: form.technology,
+        submission_type: form.submissionType,
+        school_id: teacher.schoolId, teacher_id: teacher.id,
+        due_date: form.dueDate, learning_objective: form.learningObjective,
+        instructions: filteredInstructions, reference_resources: filteredResources,
+        expected_output: form.expectedOutput, max_marks: form.maxMarks,
+        difficulty_level: form.difficultyLevel, estimated_time: form.estimatedTime,
+      })) as any,
+    );
 
     if (error) { toast.error("Failed to save project: " + error.message); return; }
 
-    // Send notifications to students in this class
+    // Send notifications to students in the selected sections
     const teacherDisplayName = teacher ? `${teacher.firstName} ${teacher.lastName}`.trim() : "Your teacher";
     const allStudents2 = getTeacherStudents(user?.id || "");
-    const classStudents2 = allStudents2.filter((s) => `${s.class}-${s.section}` === form.targetClass);
+    const classStudents2 = allStudents2.filter((s) => targets.includes(`${s.class}-${s.section}`));
     const notifInserts = classStudents2.filter(s => s.user_id).map(s => ({
       user_id: s.user_id!,
       title: `🚀 New Project from ${teacherDisplayName}`,
@@ -171,9 +180,9 @@ const TeacherProjects = () => {
 
     await fetchProjects();
     setShowForm(false);
-    setForm({ title: "", description: "", targetClass: myClasses[0] || "", technology: TECH_OPTIONS[0], submissionType: SUBMISSION_TYPES[0], dueDate: "", learningObjective: "", instructions: [""], referenceResources: [""], expectedOutput: "", maxMarks: 100, difficultyLevel: "Medium", estimatedTime: "" });
-    toast.success("Project assigned!");
-  }, [form, teacher, myClasses, fetchProjects, getTeacherStudents, user?.id]);
+    setForm({ title: "", description: "", targetClass: firstClass, targetSections: [(classGroups[firstClass] || [])[0]].filter(Boolean), technology: TECH_OPTIONS[0], submissionType: SUBMISSION_TYPES[0], dueDate: "", learningObjective: "", instructions: [""], referenceResources: [""], expectedOutput: "", maxMarks: 100, difficultyLevel: "Medium", estimatedTime: "" });
+    toast.success(`Project assigned to ${targets.length} section${targets.length > 1 ? "s" : ""}!`);
+  }, [form, teacher, firstClass, fetchProjects, getTeacherStudents, user?.id]);
 
   const deleteProject = async (id: string) => {
     const { error } = await supabase.from("projects").delete().eq("id", id);
