@@ -54,6 +54,8 @@ const TeacherProjects = () => {
   const { teachers, getTeacherStudents } = useData();
   const teacher = teachers.find((t) => t.user_id === user?.id || t.id === user?.id);
   const myClasses = teacher?.classes || [];
+  const classGroups = groupClassSections(myClasses);
+  const firstClass = Object.keys(classGroups).sort()[0] || "";
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +67,7 @@ const TeacherProjects = () => {
   const [activeTab, setActiveTab] = useState<"details" | "submissions" | "analytics">("details");
 
   const [form, setForm] = useState({
-    title: "", description: "", targetClass: myClasses[0] || "", technology: TECH_OPTIONS[0],
+    title: "", description: "", targetClass: firstClass, targetSections: [] as string[], technology: TECH_OPTIONS[0],
     submissionType: SUBMISSION_TYPES[0], dueDate: "", learningObjective: "",
     instructions: [""], referenceResources: [""], expectedOutput: "",
     maxMarks: 100, difficultyLevel: "Medium", estimatedTime: "",
