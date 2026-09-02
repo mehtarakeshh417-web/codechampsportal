@@ -222,8 +222,8 @@ const TeacherAssignments = () => {
       attachmentName = attachFile.name;
     }
 
-    const targets = form.targetClass === ALL_SECTIONS ? myClasses : [form.targetClass];
-    if (targets.length === 0) { toast.error("No classes assigned to you"); return; }
+    const targets = form.targetSections.map((sec) => `${form.targetClass}-${sec}`);
+    if (targets.length === 0) { toast.error("Select at least one section"); return; }
 
     const { error } = await supabase.from("assignments").insert(
       targets.map((t) => ({
