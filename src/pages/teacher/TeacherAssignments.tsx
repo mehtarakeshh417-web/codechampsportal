@@ -50,6 +50,8 @@ const TeacherAssignments = () => {
   const teacher = teachers.find((t) => t.user_id === user?.id || t.id === user?.id);
   const teacherName = teacher ? `${teacher.firstName} ${teacher.lastName}`.trim() : "Your teacher";
   const myClasses = teacher?.classes || [];
+  const classGroups = groupClassSections(myClasses);
+  const firstClass = Object.keys(classGroups).sort()[0] || "";
 
   const fmtClass = useClassFormatter();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -57,7 +59,7 @@ const TeacherAssignments = () => {
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [submissionsMap, setSubmissionsMap] = useState<Record<string, SubmissionRecord[]>>({});
-  const [form, setForm] = useState({ title: "", targetClass: myClasses[0] || "", subject: "", dueDate: "", difficultyLevel: "Medium", assignmentType: "mcq" });
+  const [form, setForm] = useState({ title: "", targetClass: firstClass, targetSections: [] as string[], subject: "", dueDate: "", difficultyLevel: "Medium", assignmentType: "mcq" });
   const [questions, setQuestions] = useState<Question[]>([]);
   const [qForm, setQForm] = useState({ type: "mcq" as Question["type"], question: "", options: ["", "", "", ""], correctAnswer: "" });
 
