@@ -18,6 +18,7 @@ import SchoolSettings from "./school/SchoolSettings";
 import SchoolAttendance from "./school/SchoolAttendance";
 import SchoolAnnouncements from "./school/SchoolAnnouncements";
 import SchoolDeleted from "./school/SchoolDeleted";
+import SchoolTeacherActivity from "./school/SchoolTeacherActivity";
 
 import TeacherDashboard from "./teacher/TeacherDashboard";
 import TeacherClasses from "./teacher/TeacherClasses";
@@ -65,6 +66,7 @@ const schoolRoutes = (
     <Route path="attendance" element={<SchoolAttendance />} />
     <Route path="announcements" element={<SchoolAnnouncements />} />
     <Route path="analytics" element={<SchoolAnalytics />} />
+    <Route path="teacher-activity" element={<SchoolTeacherActivity />} />
     <Route path="settings" element={<SchoolSettings />} />
     <Route path="deleted" element={<SchoolDeleted />} />
 
